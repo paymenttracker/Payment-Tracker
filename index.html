@@ -1,0 +1,2095 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Personal Payment Tracker</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.25/jspdf.plugin.autotable.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f7f7f7;
+        }
+
+        .card {
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1);
+        }
+
+        .debit {
+            color: #dc2626;
+        }
+
+        /* text-red-600 */
+        .credit {
+            color: #16a34a;
+        }
+
+        /* text-green-600 */
+        .auth-container {
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .profile-pic {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            object-fit: cover;
+            cursor: pointer;
+            border: 2px solid #3b82f6;
+            transition: all 0.2s;
+        }
+
+        .profile-pic:hover {
+            border-color: #1d4ed8;
+        }
+
+        #auth-container {
+            min-height: 100vh;
+            align-items: flex-start;
+            padding-top: 5vh;
+        }
+
+        #auth-form {
+            padding-bottom: 20px;
+        }
+
+        /* Custom styles for step transition animation */
+        .fade-in {
+            opacity: 1;
+            transform: translateX(0);
+        }
+
+        .fade-out-left {
+            opacity: 0;
+            transform: translateX(-20px);
+        }
+
+        .fade-out-right {
+            opacity: 0;
+            transform: translateX(20px);
+        }
+
+        .transition-transform-opacity {
+            transition: opacity 0.4s ease-in-out, transform 0.4s ease-in-out;
+        }
+    </style>
+</head>
+
+<body class="min-h-screen p-4 md:p-8">
+
+    <div id="auth-container" class="auth-container">
+        <div class="w-full max-w-lg p-8 bg-white rounded-xl card text-center">
+            <h1 class="text-3xl font-extrabold text-gray-800 mb-6" id="auth-title">Sign In</h1>
+            <div id="auth-status" class="text-sm pt-2 text-red-600 hidden mb-4"></div>
+
+            <div id="signin-view" class="transition-transform-opacity fade-in space-y-4">
+                <form id="signin-form" class="space-y-4">
+                    <input type="email" id="signin-email" placeholder="Email" required
+                        class="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-3 border focus:ring-blue-500 focus:border-blue-500">
+                    <input type="password" id="signin-password" placeholder="Password" required
+                        class="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-3 border focus:ring-blue-500 focus:border-blue-500">
+
+                    <button type="submit" id="signin-submit-btn"
+                        class="w-full py-3 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition ease-in-out duration-150">
+                        Sign In
+                    </button>
+                </form>
+                <button id="reset-password-btn" type="button"
+                    class="mt-4 text-sm text-red-500 hover:text-red-700 w-full text-center transition duration-150">
+                    Forgot Password?
+                </button>
+            </div>
+
+            <div id="signup-step-1-view" class="transition-transform-opacity fade-out-right space-y-4 hidden">
+                <form id="signup-step-1-form" class="space-y-4">
+                    <input type="text" id="user-name" placeholder="Full Name" required
+                        class="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-3 border focus:ring-blue-500 focus:border-blue-500">
+
+                    <p class="text-sm font-semibold text-gray-700 pt-2 border-t border-gray-200">Contact Details (for
+                        Verification)</p>
+                    <input type="email" id="signup-email-step1" placeholder="Email (Mandatory)" required
+                        class="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-3 border focus:ring-blue-500 focus:border-blue-500">
+                    <input type="text" id="mobile-number" placeholder="Mobile Number (Optional, 10 Digits)"
+                        maxlength="10" pattern="[0-9]{10}" inputmode="numeric"
+                        class="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-3 border focus:ring-blue-500 focus:border-blue-500">
+
+                    <p class="text-sm font-semibold text-gray-700 pt-2 border-t border-gray-200">Address Details</p>
+                    <input type="text" id="address-1" placeholder="Address Line 1 (Mandatory)" required
+                        class="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-3 border focus:ring-blue-500 focus:border-blue-500">
+
+                    <div class="grid grid-cols-2 gap-4">
+                        <input type="text" id="pincode" placeholder="Pincode (6 Digits Mandatory)" required
+                            maxlength="6" pattern="[0-9]{6}" inputmode="numeric"
+                            class="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-3 border focus:ring-blue-500 focus:border-blue-500">
+                        <select id="state" required
+                            class="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-3 border focus:ring-blue-500 focus:border-blue-500 bg-white">
+                            <option value="">Select State (Mandatory)</option>
+                        </select>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-4">
+                        <select id="district" required disabled
+                            class="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-3 border focus:ring-blue-500 focus:border-blue-500 bg-white">
+                            <option value="">Select District (Select State First)</option>
+                        </select>
+                        <input type="text" id="address-2" placeholder="Address Line 2 (Optional)"
+                            class="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-3 border focus:ring-blue-500 focus:border-blue-500">
+                    </div>
+
+                    <input type="text" id="sub-district" placeholder="Sub-District / City (Mandatory)" required
+                        class="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-3 border focus:ring-blue-500 focus:border-blue-500">
+
+                    <div class="border border-gray-300 rounded-md p-3">
+                        <label for="profile-photo"
+                            class="block text-sm font-medium text-gray-700 text-left mb-2">Profile Photo (Max
+                            1MB)</label>
+                        <input type="file" id="profile-photo" accept="image/jpeg, image/png"
+                            class="mt-1 block w-full text-sm text-gray-900 border-0 rounded-md cursor-pointer focus:ring-0 focus:outline-none">
+                    </div>
+
+                    <button type="submit" id="next-step-btn"
+                        class="w-full py-3 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition ease-in-out duration-150">
+                        Next: Verify Contact →
+                    </button>
+                </form>
+            </div>
+
+            <div id="signup-step-2-view" class="transition-transform-opacity fade-out-right space-y-4 hidden">
+                <div class="space-y-4">
+                    <p class="text-lg font-semibold text-gray-700 text-center" id="verification-message">
+                        Please check your inbox. A verification link has been sent to the email address provided.
+                    </p>
+                    <p class="text-sm text-gray-500 mt-1 mb-6 text-center">
+                        **Action Required:** Click the link in the email to verify your address, then click the button
+                        below to proceed to Step 3.
+                    </p>
+
+                    <button type="button" id="check-verification-btn"
+                        class="w-full py-3 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition duration-150">
+                        I Have Verified My Email (Continue)
+                    </button>
+
+                    <p class="text-xs text-red-600 mt-4 text-center border-t pt-2">
+                        **NOTE:** Since real emails cannot be sent from this environment, clicking the button above
+                        **forces** the verification status to `true` so you can complete the flow.
+                    </p>
+
+                    <button type="button" id="otp-back-btn"
+                        class="w-full mt-4 py-2 px-4 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-gray-200 hover:bg-gray-300 transition duration-150">
+                        ← Back (Change Details)
+                    </button>
+                </div>
+            </div>
+
+
+            <div id="signup-step-3-view" class="transition-transform-opacity fade-out-left space-y-4 hidden">
+                <form id="signup-step-3-form" class="space-y-4">
+                    <p class="text-sm font-semibold text-gray-700 pt-2 border-t border-gray-200">Choose Your Password
+                    </p>
+
+                    <input type="password" id="signup-password" placeholder="Password (Mandatory)" required
+                        class="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-3 border focus:ring-blue-500 focus:border-blue-500">
+
+                    <input type="password" id="confirm-password" placeholder="Confirm Password (Mandatory)" required
+                        class="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-3 border focus:ring-blue-500 focus:border-blue-500">
+
+                    <div class="flex space-x-3">
+                        <button type="button" id="back-step-btn-3"
+                            class="flex-1 py-3 px-4 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-gray-200 hover:bg-gray-300 transition duration-150">
+                            ← Back (Verification/Details)
+                        </button>
+                        <button type="submit" id="signup-submit-btn"
+                            class="flex-1 py-3 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition duration-150">
+                            Sign Up
+                        </button>
+                    </div>
+                </form>
+            </div>
+
+            <button id="auth-toggle-btn" class="mt-4 text-blue-600 hover:text-blue-700 text-sm">
+                Need an account? Sign Up
+            </button>
+        </div>
+    </div>
+
+    <div id="account-selection-container" class="auth-container hidden">
+        <div class="w-full max-w-md p-8 bg-white rounded-xl card text-center">
+            <h1 class="text-3xl font-extrabold text-gray-800 mb-6">Select Ledger Type</h1>
+            <p class="text-gray-600 mb-8">Choose the type of account you wish to manage.</p>
+
+            <div class="space-y-4">
+                <button data-type="creditCard"
+                    class="select-account-type-btn w-full py-4 px-4 rounded-md shadow-sm text-lg font-medium text-white bg-indigo-600 hover:bg-indigo-700 transition duration-150">
+                    Credit Card Ledger
+                </button>
+                <button data-type="savingsBank"
+                    class="select-account-type-btn w-full py-4 px-4 rounded-md shadow-sm text-lg font-medium text-white bg-teal-600 hover:bg-teal-700 transition duration-150">
+                    Savings Bank Account Ledger
+                </button>
+            </div>
+
+            <button id="selection-logout-btn"
+                class="mt-8 py-1 px-3 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-red-500 hover:bg-red-600 transition duration-150">
+                Logout
+            </button>
+        </div>
+    </div>
+
+    <div id="specific-account-selection-container" class="auth-container hidden">
+        <div class="w-full max-w-2xl p-8 bg-white rounded-xl card text-center">
+            <h1 class="text-3xl font-extrabold text-gray-800 mb-2" id="specific-ledger-title"></h1>
+            <p class="text-sm text-gray-500 mb-6">Select an existing account to view its ledger or add a new one.</p>
+
+            <form id="add-specific-account-form"
+                class="flex flex-col sm:flex-row gap-2 mb-4 items-center justify-center">
+                <input type="text" id="new-account-name" placeholder="New Account Name (e.g., HDFC Regalia)" required
+                    class="flex-grow rounded-md border-gray-300 shadow-sm p-2 border focus:ring-indigo-500 focus:border-indigo-500 w-full sm:w-auto">
+                <button type="submit"
+                    class="w-full sm:w-auto py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 transition duration-150">
+                    Add Account
+                </button>
+            </form>
+
+            <div id="specific-account-status" class="text-sm pt-2 mb-4 hidden"></div>
+
+            <div id="specific-account-list" class="space-y-3 max-h-80 overflow-y-auto p-2">
+                <p class="text-gray-500" id="no-accounts-message">No accounts found. Please add one above.</p>
+            </div>
+
+            <button id="specific-selection-back-btn" class="mt-8 text-blue-600 hover:text-blue-700 text-sm">
+                ← Back to Ledger Selection
+            </button>
+        </div>
+    </div>
+
+    <div id="profile-edit-container" class="auth-container hidden">
+        <div class="w-full max-w-lg p-8 bg-white rounded-xl card text-center">
+            <h1 class="text-3xl font-extrabold text-gray-800 mb-6">Edit Profile</h1>
+            <form id="profile-edit-form" class="space-y-4 text-left">
+                <input type="text" id="edit-user-name" placeholder="Full Name" required
+                    class="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-3 border focus:ring-blue-500 focus:border-blue-500">
+
+                <p class="text-sm font-semibold text-gray-700 pt-2 border-t border-gray-200">Address Details</p>
+                <input type="text" id="edit-address-1" placeholder="Address Line 1 (Mandatory)" required
+                    class="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-3 border focus:ring-blue-500 focus:border-blue-500">
+
+                <div class="grid grid-cols-2 gap-4">
+                    <input type="text" id="edit-pincode" placeholder="Pincode (6 Digits Mandatory)" required
+                        maxlength="6" pattern="[0-9]{6}" inputmode="numeric"
+                        class="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-3 border focus:ring-blue-500 focus:border-blue-500">
+                    <select id="edit-state" required
+                        class="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-3 border focus:ring-blue-500 focus:border-blue-500 bg-white">
+                        <option value="">Select State (Mandatory)</option>
+                    </select>
+                </div>
+
+                <div class="grid grid-cols-2 gap-4">
+                    <select id="edit-district" required disabled
+                        class="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-3 border focus:ring-blue-500 focus:border-blue-500 bg-white">
+                        <option value="">Select District (Select State First)</option>
+                    </select>
+                    <input type="text" id="edit-sub-district" placeholder="Sub-District / City (Mandatory)" required
+                        class="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-3 border focus:ring-blue-500 focus:border-blue-500">
+                </div>
+
+                <input type="text" id="edit-address-2" placeholder="Address Line 2 (Optional)"
+                    class="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-3 border focus:ring-blue-500 focus:border-blue-500">
+
+
+                <div class="border border-gray-300 rounded-md p-3">
+                    <p class="block text-sm font-medium text-gray-700 text-left mb-2">Change Profile Photo (Max 1MB)</p>
+                    <img id="current-edit-photo" class="w-16 h-16 rounded-full mx-auto my-3"
+                        src="https://placehold.co/64x64/cccccc/333333?text=Current" alt="Current Photo">
+                    <input type="file" id="edit-profile-photo" accept="image/jpeg, image/png"
+                        class="mt-1 block w-full text-sm text-gray-900 border-0 rounded-md cursor-pointer focus:ring-0 focus:outline-none">
+                    <p id="edit-photo-status" class="text-xs text-red-500 mt-1 hidden"></p>
+                </div>
+
+                <button type="submit" id="update-profile-btn"
+                    class="w-full py-3 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition ease-in-out duration-150">
+                    Update Profile
+                </button>
+                <button type="button" id="cancel-edit-btn"
+                    class="w-full py-3 px-4 mt-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 transition ease-in-out duration-150">
+                    Cancel
+                </button>
+
+                <hr class="my-6 border-gray-200">
+                <button type="button" id="delete-account-btn"
+                    class="w-full py-3 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition ease-in-out duration-150">
+                    Delete My Account PERMANENTLY
+                </button>
+
+                <div id="edit-profile-status" class="text-sm pt-2 text-red-600 hidden text-center"></div>
+            </form>
+        </div>
+    </div>
+
+
+    <div id="app-container" class="max-w-6xl mx-auto hidden">
+        <header class="text-center mb-6 flex justify-between items-center">
+            <h1 class="4xl font-extrabold text-gray-800" id="app-title">My Financial Ledger</h1>
+            <div class="flex items-center space-x-4 relative">
+
+                <div class="text-right flex items-center space-x-2">
+                    <span id="user-display-name" class="hidden sm:inline text-gray-700 font-medium">Loading...</span>
+
+                    <img id="profile-photo-display" src="https://placehold.co/40x40/3b82f6/ffffff?text=U"
+                        class="profile-pic" alt="Profile Photo">
+
+                    <div id="profile-menu"
+                        class="absolute right-0 top-full mt-2 w-36 bg-white rounded-lg shadow-lg py-1 hidden z-10 border border-gray-200">
+                        <button id="edit-profile-menu-btn"
+                            class="w-full text-left px-4 py-2 text-sm text-blue-600 hover:bg-blue-50 rounded-md">
+                            Edit Profile
+                        </button>
+                        <button id="header-logout-btn"
+                            class="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 rounded-md">
+                            Logout
+                        </button>
+                    </div>
+                </div>
+
+                <div class="flex space-x-3">
+                    <button id="change-account-btn"
+                        class="py-1 px-3 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-gray-600 hover:bg-gray-700 transition duration-150">
+                        Change Account
+                    </button>
+                    <button id="change-ledger-type-btn"
+                        class="py-1 px-3 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-gray-500 hover:bg-gray-600 transition duration-150">
+                        Change Ledger Type
+                    </button>
+                </div>
+            </div>
+        </header>
+
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+            <div class="lg:col-span-1 p-6 bg-white rounded-xl card h-fit">
+                <h2 class2="2xl font-semibold mb-6 text-gray-700" id="form-header">Record Transaction</h2>
+                <form id="transaction-form" class="space-y-4">
+
+                    <div class="p-3 bg-gray-50 rounded-md border border-gray-200">
+                        <label class="block text-sm font-medium text-gray-500">Currently Recording To:</label>
+                        <p id="current-specific-account-display" class="font-semibold text-gray-800 text-lg mt-1">N/A
+                        </p>
+                    </div>
+
+                    <div>
+                        <label for="date" class="block text-sm font-medium text-gray-700">Date</label>
+                        <input type="date" id="date" required
+                            class="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2 border focus:ring-blue-500 focus:border-blue-500">
+                    </div>
+
+                    <div>
+                        <label for="description" class="block text-sm font-medium text-gray-700">Description</label>
+                        <input type="text" id="description" placeholder="e.g., Groceries, Rent, Salary" required
+                            class="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2 border focus:ring-blue-500 focus:border-blue-500">
+                    </div>
+
+                    <div>
+                        <label for="amount" class="block text-sm font-medium text-gray-700">Amount (₹)</label>
+                        <input type="number" id="amount" step="0.01" min="0.01" required
+                            class="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2 border focus:ring-blue-500 focus:border-blue-500">
+                    </div>
+
+                    <div>
+                        <label for="type" class="block text-sm font-medium text-gray-700">Type</label>
+                        <select id="type" required
+                            class="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2 border focus:ring-blue-500 focus:border-blue-500 bg-white">
+
+                            <option value="credit">Credit (Income)</option>
+                            <option value="debit">Debit (Expense)</option>
+                        </select>
+                    </div>
+
+                    <div id="category-field">
+                        <label for="category" class="block text-sm font-medium text-gray-700">Transaction
+                            Category</label>
+                        <select id="category"
+                            class="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2 border focus:ring-blue-500 focus:border-blue-500 bg-white">
+                            <optgroup label="Income (Credit)">
+                                <option value="PhonePe">PhonePe</option>
+                                <option value="GPay">GPay</option>
+                                <option value="Paytm">Paytm</option>
+                                <option value="Bhim">Bhim</option>
+                                <option value="Salary">Salary</option>
+                                <option value="Trading">Trading Profits</option>
+                                <option value="Freelance">Freelance</option>
+                                <option value="Gift/Refund">Gift / Refund</option>
+                                <option value="Gift/Refund">Gift / Refund</option>
+                                <option value="Other">Other Income</option>
+
+                            </optgroup>
+                            <optgroup label="Expenses (Debit)">
+                                <option value="Food">Food & Groceries</option>
+                                <option value="Education">Education</option>
+                                <option value="Clothing">Clothing</option>
+                                <option value="Rent">Rent / Mortgage</option>
+                                <option value="Utilities">Utilities (Bills)</option>
+                                <option value="Entertainment">Entertainment</option>
+                                <option value="Transportation">Transportation</option>
+                                <option value="Other">Other Expenses</option>
+                            </optgroup>
+                        </select>
+                    </div>
+
+                    <button type="submit" id="auth-submit-btn"
+                        class="w-full py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition ease-in-out duration-150">
+                        Record Transaction
+                    </button>
+                    <div id="transaction-status" class="text-sm pt-2 text-center hidden"></div>
+                </form>
+            </div>
+
+            <div class="lg:col-span-2 space-y-6">
+
+                <div class="grid grid-cols-3 gap-4">
+                    <div class="p-4 bg-white rounded-xl card text-center">
+                        <p class="text-sm text-gray-500">Total Income (Credit)</p>
+                        <p id="total-credit" class="text-2xl font-bold credit mt-1">₹0.00</p>
+                    </div>
+                    <div class="p-4 bg-white rounded-xl card text-center">
+                        <p class="text-sm text-gray-500">Total Expense (Debit)</p>
+                        <p id="total-debit" class="2xl font-bold debit mt-1">₹0.00</p>
+                    </div>
+                    <div class="p-4 bg-white rounded-xl card text-center">
+                        <p class="text-sm text-gray-500">Net Balance</p>
+                        <p id="net-balance" class="2xl font-bold mt-1 text-gray-800">₹0.00</p>
+                    </div>
+                </div>
+
+
+                <div class="p-6 bg-white rounded-xl card">
+                    <h2 class="2xl font-semibold mb-4 text-gray-700">Filter Transactions</h2>
+                    <form id="filter-form" class="flex flex-col sm:flex-row gap-4 items-end">
+                        <div class="flex-1 w-full">
+                            <label for="filter-start-date" class="block text-sm font-medium text-gray-700">Start
+                                Date</label>
+                            <input type="date" id="filter-start-date"
+                                class="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2 border focus:ring-blue-500 focus:border-blue-500">
+                        </div>
+                        <div class="flex-1 w-full">
+                            <label for="filter-end-date" class="block text-sm font-medium text-gray-700">End
+                                Date</label>
+                            <input type="date" id="filter-end-date"
+                                class="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2 border focus:ring-blue-500 focus:border-blue-500">
+                        </div>
+                        <button type="submit" id="apply-filter-btn"
+                            class="w-full sm:w-auto px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-green-600 hover:bg-green-700 transition duration-150">
+                            Apply Filter
+                        </button>
+                        <button type="button" id="clear-filter-btn"
+                            class="w-full sm:w-auto px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 transition duration-150">
+                            Clear
+                        </button>
+                    </form>
+
+                    <div class="mt-6 pt-4 border-t border-gray-100">
+                        <button id="download-pdf-btn"
+                            class="w-full py-3 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-red-600 hover:bg-red-700 transition duration-150 flex items-center justify-center">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24"
+                                stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                            </svg>
+                            Download Ledger PDF Report
+                        </button>
+                    </div>
+                </div>
+
+                <div class="p-6 bg-white rounded-xl card">
+                    <h2 class="2xl font-semibold mb-6 text-gray-700">Transaction History</h2>
+
+                    <div class="overflow-x-auto">
+                        <table class="min-w-full divide-y divide-gray-200">
+                            <thead class="bg-gray-50">
+                                <tr>
+                                    <th
+                                        class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        Date</th>
+                                    <th
+                                        class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        Account</th>
+                                    <th
+                                        class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        Description</th>
+                                    <th
+                                        class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        Category</th>
+                                    <th
+                                        class="px-3 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        Amount (₹)</th>
+                                    <th
+                                        class="px-3 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        Action</th>
+                                </tr>
+                            </thead>
+                            <tbody id="transaction-list" class="bg-white divide-y divide-gray-200">
+                                <tr>
+                                    <td colspan="6" class="px-3 py-4 text-center text-gray-500" id="loading-indicator">
+                                        Please select an account to view transactions.
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        // --- AUTH IMPORTS ---
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, onAuthStateChanged, signOut, sendPasswordResetEmail, deleteUser, sendSignInLinkToEmail, isSignInWithEmailLink, signInWithEmailLink } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        // --- FIRESTORE IMPORTS ---
+        import { getFirestore, collection, addDoc, onSnapshot, query, orderBy, doc, deleteDoc, where, getDocs, limit, setDoc, getDoc, writeBatch } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { setLogLevel } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // setLogLevel('debug'); // Uncomment for debugging
+
+        // ---------------------------------------------------------------------------------
+        // !!! IMPORTANT !!! YOU MUST REPLACE THESE PLACEHOLDERS WITH YOUR REAL CONFIG
+        // ---------------------------------------------------------------------------------
+        const firebaseConfig = {
+            apiKey: "AIzaSyCxgScBxQ1habUoF4GRSgNeUgAiAoSxQY0",
+            authDomain: "transaction-56206.firebaseapp.com",
+            projectId: "transaction-56206",
+            storageBucket: "transaction-56206.firebasestorage.app",
+            messagingSenderId: "240740017957",
+            appId: "1:240740017957:web:87b3932cfb204c4c7f9ccc",
+            measurementId: "G-2BR60LS3QM"
+        };
+
+        let db, auth, userId;
+        let isSigningUp = false;
+        let isEmailVerified = false; // Tracks email verification status
+        let allTransactions = [];
+        let selectedAccountType = null;
+        let selectedSpecificAccountName = null;
+        let unsubscribeSpecificAccounts = null;
+        let unsubscribeTransactions = null;
+        let userProfile = {};
+        let profilePhotoFile = null;
+        let editProfilePhotoFile = null; // Correctly defined
+        let tempSignupData = {}; // Stores Step 1 data temporarily
+
+        const MAX_FILE_SIZE_BYTES = 1024 * 1024; // 1 MB
+
+        // --- DOM ELEMENTS ---
+        const authContainer = document.getElementById('auth-container');
+        const accountSelectionContainer = document.getElementById('account-selection-container');
+        const specificAccountSelectionContainer = document.getElementById('specific-account-selection-container');
+        const profileEditContainer = document.getElementById('profile-edit-container');
+        const appContainer = document.getElementById('app-container');
+        const authTitle = document.getElementById('auth-title');
+        const authStatusEl = document.getElementById('auth-status');
+        const signinView = document.getElementById('signin-view');
+
+        // Sign-up step 1 elements
+        const signupStep1View = document.getElementById('signup-step-1-view');
+        const profilePhotoInput = document.getElementById('profile-photo');
+        const signupEmailStep1 = document.getElementById('signup-email-step1');
+        const mobileNumberInput = document.getElementById('mobile-number');
+
+        // Sign-up step 2 (Email Verification) elements
+        const signupStep2View = document.getElementById('signup-step-2-view');
+        const checkVerificationBtn = document.getElementById('check-verification-btn');
+        const verificationMessage = document.getElementById('verification-message');
+        const otpBackBtn = document.getElementById('otp-back-btn');
+
+        // Sign-up step 3 (Security) elements
+        const signupStep3View = document.getElementById('signup-step-3-view');
+        const signupStep3Form = document.getElementById('signup-step-3-form');
+        const signupSubmitBtn = document.getElementById('signup-submit-btn');
+        const backStepBtn3 = document.getElementById('back-step-btn-3');
+
+        // --- INDIAN STATE/DISTRICT DATA (COMPREHENSIVE) ---
+        const indianStatesAndDistricts = {
+            "Select State": ["Select District"],
+            "Andhra Pradesh": ["Anantapur", "Chittoor", "East Godavari", "Guntur", "Krishna", "Kurnool", "Nellore", "Prakasam", "Srikakulam", "Visakhapatnam", "Vizianagaram", "West Godavari", "YSR Kadapa"],
+            "Arunachal Pradesh": ["Tawang", "West Kameng", "East Kameng", "Papum Pare", "Lower Subansiri", "Upper Subansiri", "West Siang", "East Siang", "Upper Siang", "Lower Dibang Valley", "Upper Dibang Valley", "Lohit", "Namsai", "Tirap", "Changlang", "Kamle", "Kra Daadi", "Shi Yomi", "Lower Siang", "Pakke Kessang"],
+            "Assam": ["Baksa", "Barpeta", "Biswanath", "Bongaigaon", "Cachar", "Charaideo", "Chirang", "Darrang", "Dhemaji", "Dhubri", "Dibrugarh", "Goalpara", "Golaghat", "Hailakandi", "Hojai", "Jorhat", "Kamrup Metropolitan", "Kamrup Rural", "Karbi Anglong", "Karimganj", "Kokrajhar", "Lakhimpur", "Majuli", "Morigaon", "Nagaon", "Nalbari", "Sivasagar", "Sonitpur", "South Salmara-Mankachar", "Tinsukia", "Udalguri", "West Karbi Anglong"],
+            "Bihar": ["Araria", "Arwal", "Aurangabad", "Banka", "Begusarai", "Bhagalpur", "Bhojpur", "Buxar", "Darbhanga", "East Champaran", "Gaya", "Gopalganj", "Jamui", "Jehanabad", "Kaimur", "Katihar", "Khagaria", "Kishanganj", "Lakhisarai", "Madhepura", "Madhubani", "Munger", "Muzaffarpur", "Nalanda", "Nawada", "Patna", "Purnia", "Rohtas", "Saharsa", "Samastipur", "Saran", "Sheikhpura", "Sheohar", "Sitamarhi", "Siwan", "Supaul", "Vaishali", "West Champaran"],
+            "Chhattisgarh": ["Balod", "Baloda Bazar", "Balrampur", "Bastar", "Bemetara", "Bijapur", "Bilaspur", "Dantewada", "Dhamtari", "Durg", "Gariaband", "Janjgir-Champa", "Jashpur", "Kabirdham", "Kanker", "Kondagaon", "Korba", "Koriya", "Mahasamund", "Mungeli", "Narayanpur", "Raigarh", "Raipur", "Rajnandgaon", "Sukma", "Surajpur", "Surguja"],
+            "Goa": ["North Goa", "South Goa"],
+            "Gujarat": ["Ahmedabad", "Amreli", "Anand", "Aravalli", "Banaskantha", "Bharuch", "Bhavnagar", "Botad", "Chhota Udaipur", "Dahod", "Dang", "Devbhoomi Dwarka", "Gandhinagar", "Gir Somnath", "Jamnagar", "Junagadh", "Kheda", "Kutch", "Mahisagar", "Mehsana", "Morbi", "Narmada", "Navsari", "Panchmahal", "Patan", "Porbandar", "Rajkot", "Sabarkantha", "Surat", "Surendranagar", "Tapi", "Vadodara", "Valsad"],
+            "Haryana": ["Ambala", "Bhiwani", "Charkhi Dadri", "Faridabad", "Fatehabad", "Gurgaon", "Hisar", "Jhajjar", "Jind", "Kaithal", "Karnal", "Kurukshetra", "Mahendragarh", "Mewat", "Palwal", "Panchkula", "Panipat", "Rewari", "Rohtak", "Sirsa", "Sonipat", "Yamunanagar"],
+            "Himachal Pradesh": ["Bilaspur", "Chamba", "Hamirpur", "Kangra", "Kinnaur", "Kullu", "Lahaul and Spiti", "Mandi", "Shimla", "Sirmaur", "Solan", "Una"],
+            "Jharkhand": ["Bokaro", "Chatra", "Deoghar", "Dhanbad", "Dumka", "East Singhbhum", "Garhwa", "Giridih", "Godda", "Gumla", "Hazaribagh", "Jamtara", "Khunti", "Koderma", "Latehar", "Lohardaga", "Pakur", "Palamu", "Ramgarh", "Ranchi", "Sahebganj", "Saraikela-Kharsawan", "Simdega", "West Singhbhum"],
+            "Karnataka": ["Bagalkot", "Ballari", "Belagavi", "Bengaluru Rural", "Bengaluru Urban", "Bidar", "Chamarajanagar", "Chikkaballapur", "Chikkamagaluru", "Chitradurga", "Dakshina Kannada", "Davanagere", "Dharwad", "Gadag", "Kalaburigi", "Hassan", "Haveri", "Kodagu", "Kolar", "Koppal", "Mandya", "Mysuru", "Raichur", "Ramanagara", "Shivamogga", "Tumakuru", "Udupi", "Uttara Kannada", "Vijayapura", "Yadgir"],
+            "Kerala": ["Alappuzha", "Ernakulam", "Idukki", "Kannur", "Kasaragod", "Kollam", "Kottayam", "Kozhikode", "Malappuram", "Palakkad", "Pathanamthitta", "Thiruvananthapuram", "Thrissur", "Wayanad"],
+            "Madhya Pradesh": ["Bhopal", "Indore", "Jabalpur", "Gwalior", "Ujjain", "Sagar", "Rewa", "Mandsaur", "Khargone", "Satna", "Vidisha", "Chhindwara", "Damoh", "Dewas", "Hoshangabad", "Khandwa", "Morena", "Rajgarh", "Sehore", "Shahdol", "Shivpuri", "Tikamgarh"],
+            "Maharashtra": ["Ahmednagar", "Akola", "Amravati", "Aurangabad", "Beed", "Bhandara", "Buldhana", "Chandrapur", "Dhule", "Gadchiroli", "Gondia", "Hingoli", "Jalgaon", "Jalna", "Kolhapur", "Latur", "Mumbai City", "Mumbai Suburban", "Nagpur", "Nanded", "Nandurbar", "Nashik", "Osmanabad", "Palghar", "Parbhani", "Pune", "Raigad", "Ratnagiri", "Sangli", "Satara", "Sindhudurg", "Solapur", "Thane", "Wardha", "Washim", "Yavatmal"],
+            "Manipur": ["Bishnupur", "Chandel", "Churachandpur", "Imphal East", "Imphal West", "Jiribam", "Kakching", "Kamjong", "Kangpokpi", "Noney", "Pherzawl", "Senapati", "Tamenglong", "Tengnoupal", "Thoubal", "Ukhrul"],
+            "Meghalaya": ["East Garo Hills", "East Jaintia Hills", "East Khasi Hills", "North Garo Hills", "Ri-Bhoi", "South Garo Hills", "South West Garo Hills", "South West Khasi Hills", "West Garo Hills", "West Jaintia Hills", "West Khasi Hills"],
+            "Mizoram": ["Aizawl", "Champhai", "Hnahthial", "Kolasib", "Lawngtlai", "Lunglei", "Mamit", "Saiha", "Serchhip", "Siaha"],
+            "Nagaland": ["Dimapur", "Kiphire", "Kohima", "Longleng", "Mokokchung", "Mon", "Peren", "Phek", "Tuensang", "Wokha", "Zunheboto", "Noklak", "Shamator", "Tseminyu"],
+            "Odisha": ["Angul", "Balangir", "Balasore", "Bargarh", "Bhadrak", "Boudh", "Cuttack", "Deogarh", "Dhenkanal", "Gajapati", "Ganjam", "Jagatsinghpur", "Jajpur", "Jharsuguda", "Kalahandi", "Kandhamal", "Kendrapara", "Keonjhar", "Khordha", "Koraput", "Malkangiri", "Mayurbhanj", "Nabarangpur", "Nayagarh", "Nuapada", "Puri", "Rayagada", "Sambalpur", "Subarnapur", "Sundergarh"],
+            "Punjab": ["Amritsar", "Barnala", "Bathinda", "Faridkot", "Fatehgarh Sahib", "Fazilka", "Firozpur", "Gurdaspur", "Hoshiarpur", "Jalandhar", "Kapurthala", "Ludhiana", "Mansa", "Moga", "Muktsar", "Pathankot", "Patiala", "Rupnagar", "Sahibzada Ajit Singh Nagar", "Sangrur", "Shahid Bhagat Singh Nagar", "Tarn Taran"],
+            "Rajasthan": ["Ajmer", "Alwar", "Banswara", "Baran", "Barmer", "Bharatpur", "Bhilwara", "Bikaner", "Bundi", "Chittorgarh", "Churu", "Dausa", "Dholpur", "Dungarpur", "Hanumangarh", "Jaipur", "Jaisalmer", "Jalore", "Jhalawar", "Jhunjhunu", "Jodhpur", "Karauli", "Kota", "Nagaur", "Pali", "Pratapgarh", "Rajsamand", "Sawai Madhopur", "Sikar", "Sirohi", "Sri Ganganagar", "Tonk", "Udaipur"],
+            "Sikkim": ["East Sikkim", "North Sikkim", "South Sikkim", "West Sikkim"],
+            "Tamil Nadu": ["Ariyalur", "Chengalpattu", "Chennai", "Coimbatore", "Cuddalore", "Dharmapuri", "Dindigul", "Erode", "Kallakurichi", "Kanchipuram", "Kanyakumari", "Karur", "Krishnagiri", "Madurai", "Nagapattinam", "Namakkal", "Nilgiris", "Perambalur", "Pudukkottai", "Ramanathapuram", "Ranipet", "Salem", "Sivaganga", "Tenkasi", "Thanjavur", "Theni", "Thoothukudi", "Tiruchirappalli", "Tirunelveli", "Tirupathur", "Tiruppur", "Tiruvallur", "Tiruvannamalai", "Tiruvarur", "Vellore", "Viluppuram", "Virudhunagar"],
+            "Telangana": ["Adilabad", "Bhadradri Kothagudem", "Hyderabad", "Jagtial", "Jangaon", "Jayashankar Bhupalpally", "Jogulamba Gadwal", "Kamareddy", "Karimnagar", "Khammam", "Kumuram Bheem", "Mahabubabad", "Mahabubnagar", "Mancherial", "Medak", "Medchal-Malkajgiri", "Mulugu", "Nagarkurnool", "Nalgonda", "Narayanpet", "Nirmal", "Nizamabad", "Peddapalli", "Rajanna Sircilla", "Ranga Reddy", "Sangareddy", "Siddipet", "Suryapet", "Vikarabad", "Wanaparthy", "Warangal Rural", "Warangal Urban", "Yadadri Bhuvanagiri"],
+            "Tripura": ["Dhalai", "Gomati", "Khowai", "North Tripura", "Sepahijala", "South Tripura", "Unakoti", "West Tripura"],
+            "Uttar Pradesh": ["Agra", "Aligarh", "Ambedkar Nagar", "Amethi", "Amroha", "Auraiya", "Ayodhya", "Azamgarh", "Badaun", "Baghpat", "Bahraich", "Ballia", "Balrampur", "Banda", "Barabanki", "Bareilly", "Basti", "Bijnor", "Bulandshahr", "Chandauli", "Chitrakoot", "Deoria", "Etah", "Etawah", "Farrukhabad", "Fatehpur", "Firozabad", "Gautam Buddha Nagar", "Ghaziabad", "Ghazipur", "Gonda", "Gorakhpur", "Hamirpur", "Hapur", "Hardoi", "Hathras", "Jalaun", "Jaunpur", "Jhansi", "Kannauj", "Kanpur Dehat", "Kanpur Nagar", "Kasganj", "Kaushambi", "Kheri", "Kushinagar", "Lalitpur", "Lucknow", "Maharajganj", "Mahoba", "Mainpuri", "Mathura", "Mau", "Meerut", "Mirzapur", "Moradabad", "Muzaffarnagar", "Pilibhit", "Pratapgarh", "Prayagraj", "Raebareli", "Rampur", "Saharanpur", "Sambhal", "Sant Kabir Nagar", "Sant Ravidas Nagar", "Shahjahanpur", "Shamli", "Shrawasti", "Siddharthnagar", "Sitapur", "Sonbhadra", "Sultanpur", "Unnao", "Varanasi"],
+            "Uttarakhand": ["Almora", "Bageshwar", "Chamoli", "Champawat", "Dehradun", "Haridwar", "Nainital", "Pauri Garhwal", "Pithoragarh", "Rudraprayag", "Tehri Garhwal", "Udham Singh Nagar", "Uttarkashi"],
+            "West Bengal": ["Alipurduar", "Bankura", "Birbhum", "Cooch Behar", "Dakshin Dinajpur", "Darjeeling", "Hooghly", "Howrah", "Jalpaiguri", "Jhargram", "Kalimpong", "Kolkata", "Malda", "Murshidabad", "Nadia", "North 24 Parganas", "Paschim Bardhaman", "Paschim Medinipur", "Purba Bardhaman", "Purba Medinipur", "Purulia", "South 24 Parganas", "Uttar Dinajpur"],
+
+            // Union Territories (UTs)
+            "Andaman and Nicobar Islands": ["Nicobar", "North and Middle Andaman", "South Andaman"],
+            "Chandigarh": ["Chandigarh"],
+            "Dadra and Nagar Haveli and Daman and Diu": ["Daman", "Diu", "Dadra and Nagar Haveli"],
+            "Delhi (National Capital Territory)": ["Central Delhi", "East Delhi", "New Delhi", "North Delhi", "North East Delhi", "North West Delhi", "Shahdara", "South Delhi", "South East Delhi", "South West Delhi", "West Delhi"],
+            "Jammu and Kashmir": ["Anantnag", "Bandipora", "Baramulla", "Budgam", "Doda", "Ganderbal", "Jammu", "Kathua", "Kishtwar", "Kulgam", "Kupwara", "Poonch", "Pulwama", "Rajouri", "Ramban", "Reasi", "Samba", "Shopian", "Srinagar", "Udhampur"],
+            "Ladakh": ["Kargil", "Leh"],
+            "Lakshadweep": ["Lakshadweep"],
+            "Puducherry": ["Karaikal", "Mahe", "Puducherry", "Yanam"],
+        };
+
+
+        // --- UTILITIES ---
+
+        // Function to convert file to Base64 string
+        const fileToBase64 = (file) => new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = () => resolve(reader.result);
+            reader.onerror = error => reject(error);
+            reader.readAsDataURL(file);
+        });
+
+        function formatCurrency(amount) {
+            // Using 'en-IN' locale for Indian numbering and Rupee symbol (₹)
+            return new Intl.NumberFormat('en-IN', {
+                style: 'currency',
+                currency: 'INR',
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2
+            }).format(amount);
+        }
+
+        function showElement(el) { el.classList.remove('hidden'); }
+        function hideElement(el) { el.classList.add('hidden'); }
+
+        function showStatus(message, colorClass, element) {
+            element.textContent = message;
+            element.className = `text-sm pt-2 text-center ${colorClass}`;
+            showElement(element);
+
+            // Hide after a few seconds unless it's a critical setup error
+            if (!message.includes('Local setup incomplete') && !message.includes('Database not configured') && colorClass !== 'text-red-600') {
+                setTimeout(() => {
+                    hideElement(element);
+                }, 5000);
+            }
+        }
+
+        // Returns the collection reference for transactions based on the account type
+        function getCollectionPath(type) {
+            if (!userId) return null;
+            if (type === 'creditCard') {
+                return collection(db, 'users', userId, 'creditCardTransactions');
+            } else if (type === 'savingsBank') {
+                return collection(db, 'users', userId, 'savingsBankTransactions');
+            }
+            return null;
+        }
+
+        // Returns the collection reference for specific accounts (e.g., HDFC Regalia, SBI Savings)
+        function getSpecificAccountsCollectionPath(type) {
+            if (!userId) return null;
+            const pathSegment = type === 'creditCard' ? 'creditCardAccounts' : 'savingsBankAccounts';
+            return collection(db, 'users', userId, pathSegment);
+        }
+
+        // Returns the Document Reference for the User Profile
+        function getUserProfileDocRef(uid) {
+            if (!db || !uid) return null;
+            // Path: users/{userId}/profile/data (Document named 'data' in subcollection 'profile')
+            return doc(db, 'users', uid, 'profile', 'data');
+        }
+
+        function unsubscribeAllListeners() {
+            if (unsubscribeSpecificAccounts) {
+                unsubscribeSpecificAccounts();
+                unsubscribeSpecificAccounts = null;
+            }
+            if (unsubscribeTransactions) {
+                unsubscribeTransactions();
+                unsubscribeTransactions = null;
+            }
+        }
+
+        function handleLogout() {
+            unsubscribeAllListeners(); // Clear all listeners on logout
+            signOut(auth);
+            // State cleanup is handled by onAuthStateChanged listener
+        }
+
+        // --- AUTHENTICATION HANDLERS ---
+
+        function toggleAuthMode() {
+            isSigningUp = !isSigningUp;
+            hideElement(authStatusEl);
+
+            // Reset all views to default/hidden state for transition
+            signinView.classList.add('fade-out-right', 'hidden');
+            signupStep1View.classList.add('fade-out-right', 'hidden');
+            signupStep2View.classList.add('fade-out-right', 'hidden');
+            signupStep3View.classList.add('fade-out-right', 'hidden');
+
+            if (isSigningUp) {
+                // Switch to Sign Up Step 1
+                authTitle.textContent = 'Sign Up (Step 1: Personal & Contact)';
+                document.getElementById('auth-toggle-btn').textContent = 'Already have an account? Sign In';
+
+                // Show Step 1 with fade-in effect
+                signupStep1View.classList.remove('hidden', 'fade-out-right');
+                setTimeout(() => {
+                    signupStep1View.classList.add('fade-in');
+                    signupStep1View.classList.remove('fade-out-left');
+                }, 10);
+
+                // Ensure data persists if they toggle back
+                populateSignupStep1Form();
+            } else {
+                // Switch to Sign In
+                authTitle.textContent = 'Sign In';
+                document.getElementById('auth-toggle-btn').textContent = 'Need an account? Sign Up';
+
+                // Show Sign In view with fade-in effect
+                signinView.classList.remove('hidden', 'fade-out-right');
+                setTimeout(() => {
+                    signinView.classList.add('fade-in');
+                    signinView.classList.remove('fade-out-left');
+                }, 10);
+            }
+        }
+
+        async function handleSignIn(e) {
+            e.preventDefault();
+            const email = document.getElementById('signin-email').value;
+            const password = document.getElementById('signin-password').value;
+            const signInBtn = document.getElementById('signin-submit-btn');
+
+            if (!auth || !email || !password) return;
+
+            signInBtn.disabled = true;
+            hideElement(authStatusEl);
+            showStatus('Signing in...', 'text-gray-500', authStatusEl);
+
+            try {
+                await signInWithEmailAndPassword(auth, email, password);
+                // Success is handled by onAuthStateChanged listener
+                showStatus('Sign in successful! Redirecting...', 'text-green-600', authStatusEl);
+            } catch (error) {
+                console.error("Sign In Error:", error);
+                let errorMessage = 'Sign-in failed. Please check your email and password.';
+                if (error.code === 'auth/wrong-password' || error.code === 'auth/user-not-found') {
+                    errorMessage = 'Invalid credentials or user not found.';
+                }
+                showStatus(errorMessage, 'text-red-600', authStatusEl);
+            } finally {
+                signInBtn.disabled = false;
+            }
+        }
+
+        async function handlePasswordReset() {
+            const email = document.getElementById('signin-email').value;
+            if (!email) {
+                showStatus('Please enter your email address in the Sign In field above.', 'text-red-600', authStatusEl);
+                return;
+            }
+
+            try {
+                await sendPasswordResetEmail(auth, email);
+                showStatus(`Password reset link sent to ${email}. Check your inbox.`, 'text-green-600', authStatusEl);
+            } catch (error) {
+                console.error("Reset Error:", error);
+                showStatus(`Failed to send reset email. Error: ${error.message}`, 'text-red-600', authStatusEl);
+            }
+        }
+
+        // Function to send the actual Email Verification Link
+        async function sendVerificationLink(email) {
+            // Configuration for the link redirection
+            const actionCodeSettings = {
+                // IMPORTANT: CHANGE THIS TO YOUR LIVE HOSTING URL
+                url: `${window.location.origin}/personal_payment_tracker.html`,
+                handleCodeInApp: true,
+            };
+
+            try {
+                showStatus('Sending verification link...', 'text-gray-500', authStatusEl);
+                // The actual Firebase API call to send the email link
+                await sendSignInLinkToEmail(auth, email, actionCodeSettings);
+
+                // Save email to local storage to verify upon return
+                localStorage.setItem('emailForSignIn', email);
+
+                showStatus(`Verification link sent to ${email}. Check your inbox!`, 'text-green-600', authStatusEl);
+
+            } catch (error) {
+                console.error("Error sending verification email:", error);
+                showStatus(`Error sending verification email: ${error.message}`, 'text-red-600', authStatusEl);
+            }
+        }
+
+
+        // UPDATED: Step 1 Validation and Transition to Step 2 (Email Link)
+        async function handleSignupNext(e) {
+            e.preventDefault();
+            hideElement(authStatusEl); // Clear previous errors
+
+            // 1. Get data from Step 1 form (Now includes Email/Mobile)
+            const name = document.getElementById('user-name').value.trim();
+            const email = signupEmailStep1.value.trim();
+            const mobile = mobileNumberInput.value.trim();
+            const addr1 = document.getElementById('address-1').value.trim();
+            const addr2 = document.getElementById('address-2').value.trim();
+            const subDist = document.getElementById('sub-district').value.trim();
+            const district = document.getElementById('district').value.trim();
+            const pincode = document.getElementById('pincode').value.trim();
+            const state = document.getElementById('state').value.trim();
+            const photoFile = profilePhotoFile;
+
+            // 2. Validation
+            if (!name || !addr1 || !subDist || !district || !pincode || !state || !email) {
+                showStatus('Step 1 Failed: Please fill in all mandatory fields (including Email).', 'text-red-600', authStatusEl);
+                return;
+            }
+            if (!/^\d{6}$/.test(pincode)) {
+                showStatus('Step 1 Failed: Pincode must be exactly 6 digits.', 'text-red-600', authStatusEl);
+                return;
+            }
+            if (mobile && !/^\d{10}$/.test(mobile)) {
+                showStatus('Step 1 Failed: Mobile Number must be 10 digits or left empty.', 'text-red-600', authStatusEl);
+                return;
+            }
+            if (photoFile && photoFile.size > MAX_FILE_SIZE_BYTES) {
+                showStatus('Step 1 Failed: Profile photo exceeds the 1MB limit.', 'text-red-600', authStatusEl);
+                return;
+            }
+
+            // 3. Save data temporarily and convert photo
+            let photoBase64 = null;
+            if (photoFile) {
+                showStatus('Processing image...', 'text-gray-500', authStatusEl);
+                photoBase64 = await fileToBase64(photoFile);
+            }
+
+            tempSignupData = {
+                name, email, mobile: mobile || null, address1: addr1, address2: addr2, subDistrict: subDist,
+                district, pincode, state, photoBase64
+            };
+
+            // 4. Send Verification Link (using the real API call)
+            await sendVerificationLink(email);
+
+            // 5. Transition to Step 2 (Verification)
+            authTitle.textContent = 'Sign Up (Step 2: Verification)';
+
+            // Apply fade-out class immediately to Step 1
+            signupStep1View.classList.add('fade-out-left');
+            signupStep1View.classList.remove('fade-in');
+
+            setTimeout(() => {
+                // Hide Step 1 and prepare Step 2 for fade-in
+                hideElement(signupStep1View);
+                signupStep2View.classList.remove('hidden', 'fade-out-left');
+
+                // Trigger fade-in
+                setTimeout(() => {
+                    signupStep2View.classList.add('fade-in');
+                    signupStep2View.classList.remove('fade-out-right'); // Reset for back navigation
+                }, 10);
+
+            }, 400); // Duration of CSS transition
+        }
+
+        // Handler for checking verification status (Step 2 button click)
+        async function handleCheckVerification() {
+            // SIMULATION: Since we cannot handle email redirects, we force verification here.
+            isEmailVerified = true;
+            showStatus('Email verification simulated! Proceeding...', 'text-green-600', authStatusEl);
+
+            handleNavigateToStep3();
+        }
+
+        // Handles transition from Step 2 (Verification) to Step 3 (Security)
+        function handleNavigateToStep3() {
+            authTitle.textContent = 'Sign Up (Step 3: Security)';
+
+            // Apply fade-out class immediately to Step 2
+            signupStep2View.classList.add('fade-out-left');
+            signupStep2View.classList.remove('fade-in');
+
+            setTimeout(() => {
+                // Hide Step 2 and prepare Step 3 for fade-in
+                hideElement(signupStep2View);
+                signupStep3View.classList.remove('hidden', 'fade-out-left');
+
+                // Trigger fade-in
+                setTimeout(() => {
+                    signupStep3View.classList.add('fade-in');
+                    signupStep3View.classList.remove('fade-out-right');
+                }, 10);
+
+                hideElement(authStatusEl);
+            }, 400); // Duration of CSS transition
+        }
+
+
+        // UPDATED: Back button handler for 3-step navigation
+        function handleSignupBack() {
+            // Determine current view for reverse transition
+            let currentView = null;
+            let nextView = null;
+            let nextTitle = '';
+
+            if (!signupStep3View.classList.contains('hidden')) { // Currently Step 3 -> Go to Step 2 (Verification)
+                currentView = signupStep3View;
+                nextView = signupStep2View;
+                nextTitle = 'Sign Up (Step 2: Verification)';
+            } else if (!signupStep2View.classList.contains('hidden')) { // Currently Step 2 (Verification) -> Go to Step 1 (Personal)
+                currentView = signupStep2View;
+                nextView = signupStep1View;
+                nextTitle = 'Sign Up (Step 1: Personal & Contact)';
+            } else {
+                // Back button clicked on Step 1 (should navigate to Sign In, handled by toggleAuthMode)
+                toggleAuthMode();
+                return;
+            }
+
+            authTitle.textContent = nextTitle;
+
+            // Apply fade-out class (rightwards)
+            currentView.classList.add('fade-out-right');
+            currentView.classList.remove('fade-in');
+
+            setTimeout(() => {
+                hideElement(currentView);
+                nextView.classList.remove('hidden', 'fade-out-left');
+
+                setTimeout(() => {
+                    nextView.classList.add('fade-in');
+                    nextView.classList.remove('fade-out-right');
+
+                    if (nextView === signupStep1View) {
+                        populateSignupStep1Form(); // Repopulate if going back to step 1
+                    }
+                }, 10);
+
+                hideElement(authStatusEl);
+            }, 400);
+        }
+
+
+        async function handleFinalSignup(e) {
+            e.preventDefault();
+
+            signupSubmitBtn.disabled = true;
+            hideElement(authStatusEl);
+
+            // 1. Get security data from Step 3 form
+            const password = document.getElementById('signup-password').value;
+            const confirmPassword = document.getElementById('confirm-password').value;
+
+            // Email and Mobile are taken from tempSignupData (from Step 1)
+            const email = tempSignupData.email;
+            const mobile = tempSignupData.mobile;
+
+            // 2. Validate security and verification status
+            if (!isEmailVerified) {
+                showStatus('Error: Email must be verified before proceeding.', 'text-red-600', authStatusEl);
+                signupSubmitBtn.disabled = false;
+                return;
+            }
+            if (password !== confirmPassword) {
+                showStatus('Password and Confirm Password must match.', 'text-red-600', authStatusEl);
+                signupSubmitBtn.disabled = false;
+                return;
+            }
+
+            if (!auth) {
+                showStatus('Error: Firebase services are not initialized yet.', 'text-red-600', authStatusEl);
+                signupSubmitBtn.disabled = false;
+                return;
+            }
+
+            try {
+                showStatus('Creating account...', 'text-gray-500', authStatusEl);
+
+                // 3. Create User in Firebase Auth
+                const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+                const newUserId = userCredential.user.uid;
+
+                // 4. Save Profile Data to Firestore
+                const finalProfileData = { ...tempSignupData };
+                const profileDocRef = getUserProfileDocRef(newUserId);
+                await setDoc(profileDocRef, finalProfileData);
+
+                // Success is handled by onAuthStateChanged listener
+                showStatus('Success! Account created and verified. Redirecting...', 'text-green-600', authStatusEl);
+            } catch (error) {
+                let errorMessage = 'An unknown error occurred.';
+                if (error.code === 'auth/email-already-in-use') {
+                    errorMessage = 'Email is already in use. Try signing in.';
+                } else if (error.code) {
+                    errorMessage = error.message;
+                }
+                showStatus(errorMessage, 'text-red-600', authStatusEl);
+                console.error("Auth Error:", error);
+            } finally {
+                signupSubmitBtn.disabled = false;
+            }
+        }
+
+        // Function to check for and complete the email verification process on page load.
+        async function checkEmailVerificationOnLoad() {
+            if (isSignInWithEmailLink(auth, window.location.href)) {
+                let email = localStorage.getItem('emailForSignIn');
+
+                if (!email) {
+                    email = window.prompt('Please provide your email for confirmation:');
+                }
+
+                if (!email) {
+                    showStatus('Verification failed. Email address not provided.', 'text-red-600', authStatusEl);
+                    return;
+                }
+
+                try {
+                    showStatus('Completing verification...', 'text-gray-500', authStatusEl);
+
+                    // Sign the user in and verify the email address
+                    await signInWithEmailLink(auth, email, window.location.href);
+
+                    // Clear local storage and update verification status
+                    localStorage.removeItem('emailForSignIn');
+                    isEmailVerified = true;
+
+                    showStatus('Verification successful! You can now proceed with sign-up.', 'text-green-600', authStatusEl);
+
+                } catch (error) {
+                    console.error("Error during email link sign-in:", error);
+                    showStatus(`Verification Failed: ${error.message}`, 'text-red-600', authStatusEl);
+                }
+            }
+        }
+
+
+        // --- ADDRESS LOGIC ---
+
+        // Function to enforce 6-digit Pincode (numeric only)
+        function setupPincodeValidation() {
+            const pincodeInputs = [
+                document.getElementById('pincode'),
+                document.getElementById('edit-pincode')
+            ];
+
+            pincodeInputs.forEach(input => {
+                if (input) {
+                    input.addEventListener('input', (e) => {
+                        let value = e.target.value.replace(/[^0-9]/g, '');
+                        if (value.length > 6) {
+                            value = value.substring(0, 6);
+                        }
+                        e.target.value = value;
+                    });
+                }
+            });
+        }
+
+        // Function to populate State dropdowns
+        function populateStates(stateSelectElement, districtSelectElement, selectedState = null, selectedDistrict = null) {
+            stateSelectElement.innerHTML = '';
+            const states = Object.keys(indianStatesAndDistricts).sort(); // Sort states alphabetically
+
+            // Add default option first
+            const defaultOption = document.createElement('option');
+            defaultOption.value = "";
+            defaultOption.textContent = "Select State (Mandatory)";
+            stateSelectElement.appendChild(defaultOption);
+
+            states.filter(state => state !== "Select State").forEach(state => {
+                const option = document.createElement('option');
+                option.value = state;
+                option.textContent = state;
+                if (state === selectedState) {
+                    option.selected = true;
+                }
+                stateSelectElement.appendChild(option);
+            });
+
+            // Trigger district population after states are loaded
+            populateDistricts(stateSelectElement, districtSelectElement, selectedDistrict);
+        }
+
+        // Function to populate District dropdowns based on selected State
+        function populateDistricts(stateSelectElement, districtSelectElement, selectedDistrict = null) {
+            const state = stateSelectElement.value;
+            districtSelectElement.innerHTML = '';
+
+            if (state && state !== "Select State") {
+                districtSelectElement.disabled = false;
+                const districts = indianStatesAndDistricts[state] || ["District not available"];
+
+                const defaultOption = document.createElement('option');
+                defaultOption.value = "";
+                defaultOption.textContent = "Select District (Mandatory)";
+                districtSelectElement.appendChild(defaultOption);
+
+                districts.sort().forEach(district => { // Sort districts alphabetically
+                    const option = document.createElement('option');
+                    option.value = district;
+                    option.textContent = district;
+                    if (district === selectedDistrict) {
+                        option.selected = true;
+                    }
+                    districtSelectElement.appendChild(option);
+                });
+
+            } else {
+                districtSelectElement.disabled = true;
+                const defaultOption = document.createElement('option');
+                defaultOption.value = "";
+                defaultOption.textContent = "Select District (Select State First)";
+                districtSelectElement.appendChild(defaultOption);
+            }
+        }
+
+        // Function to load data back into Step 1 form for better UX
+        function populateSignupStep1Form() {
+            // Restore personal data
+            document.getElementById('user-name').value = tempSignupData.name || '';
+            document.getElementById('address-1').value = tempSignupData.address1 || '';
+            document.getElementById('address-2').value = tempSignupData.address2 || '';
+            document.getElementById('sub-district').value = tempSignupData.subDistrict || '';
+            document.getElementById('pincode').value = tempSignupData.pincode || '';
+
+            // Restore contact data
+            signupEmailStep1.value = tempSignupData.email || '';
+            mobileNumberInput.value = tempSignupData.mobile || '';
+
+            // Handle State/District population
+            const stateSelect = document.getElementById('state');
+            const districtSelect = document.getElementById('district');
+
+            // Populate states and set selected state, which cascades to districts
+            populateStates(stateSelect, districtSelect, tempSignupData.state, tempSignupData.district);
+        }
+
+        // --- PROFILE FUNCTIONS ---
+
+        // Load user profile data (name, photo)
+        async function loadUserProfile(uid) {
+            const docRef = getUserProfileDocRef(uid);
+            if (!docRef) return;
+
+            try {
+                const docSnap = await getDoc(docRef);
+                if (docSnap.exists()) {
+                    userProfile = docSnap.data();
+                } else {
+                    userProfile = { name: 'User' }; // Default name if profile is missing
+                }
+            } catch (error) {
+                console.error("Error loading user profile:", error);
+                userProfile = { name: 'Error' };
+            }
+
+            // Update the Dashboard Header display
+            document.getElementById('user-display-name').textContent = userProfile.name || 'User';
+            if (userProfile.photoBase64) {
+                document.getElementById('profile-photo-display').src = userProfile.photoBase64;
+            } else {
+                document.getElementById('profile-photo-display').src = `https://placehold.co/40x40/3b82f6/ffffff?text=${(userProfile.name || 'U').charAt(0)}`;
+            }
+        }
+
+        function populateProfileEditForm() {
+            // Get form elements
+            const editStateSelect = document.getElementById('edit-state');
+            const editDistrictSelect = document.getElementById('edit-district');
+
+            // 1. Pre-populate basic text fields
+            document.getElementById('edit-user-name').value = userProfile.name || '';
+            document.getElementById('edit-address-1').value = userProfile.address1 || '';
+            document.getElementById('edit-address-2').value = userProfile.address2 || '';
+            document.getElementById('edit-sub-district').value = userProfile.subDistrict || '';
+            document.getElementById('edit-pincode').value = userProfile.pincode || '';
+
+            // 2. Handle State/District population for edit form
+            populateStates(editStateSelect, editDistrictSelect, userProfile.state, userProfile.district);
+
+            // 3. Ensure listeners are set up for cascading updates
+            editStateSelect.onchange = () => populateDistricts(editStateSelect, editDistrictSelect);
+
+            // 4. Handle photo display and cleanup
+            document.getElementById('current-edit-photo').src = userProfile.photoBase64 || `https://placehold.co/64x64/cccccc/333333?text=${(userProfile.name || 'U').charAt(0)}`;
+            editProfilePhotoFile = null; // Reset file selection on form open
+            document.getElementById('edit-profile-photo').value = ''; // Clear file input value
+            hideElement(document.getElementById('edit-photo-status'));
+            hideElement(document.getElementById('edit-profile-status'));
+        }
+
+        function handleNavigateToProfileEdit() {
+            unsubscribeAllListeners(); // Stop dashboard listeners
+            hideElement(appContainer);
+            showElement(profileEditContainer);
+            populateProfileEditForm(); // Load current data into the form
+            hideElement(document.getElementById('profile-menu')); // Hide menu after clicking edit
+        }
+
+        function handleNavigateBackFromProfileEdit() {
+            hideElement(profileEditContainer);
+            // Re-show the app container, assuming the user was on the dashboard
+            showElement(appContainer);
+            // Note: Dashboard listeners are re-established when re-selecting account, or persist if app was open.
+            if (selectedAccountType) setupTransactionListener(); // Restart listener if account was selected
+        }
+
+        async function handleProfileUpdate(e) {
+            e.preventDefault();
+
+            if (!userId) {
+                showStatus('Error: User not authenticated.', 'text-red-600', document.getElementById('edit-profile-status'));
+                return;
+            }
+
+            const name = document.getElementById('edit-user-name').value.trim();
+            const addr1 = document.getElementById('edit-address-1').value.trim();
+            const addr2 = document.getElementById('edit-address-2').value.trim();
+            const subDist = document.getElementById('edit-sub-district').value.trim();
+            const district = document.getElementById('edit-district').value.trim();
+            const pincode = document.getElementById('edit-pincode').value.trim();
+            const state = document.getElementById('edit-state').value.trim();
+
+            // --- Mandatory Field Validation ---
+            if (!name || !addr1 || !subDist || !district || !pincode || !state) {
+                showStatus('Please fill in all mandatory fields.', 'text-red-600', document.getElementById('edit-profile-status'));
+                return;
+            }
+            // Pincode 6-digit validation
+            if (!/^\d{6}$/.test(pincode)) {
+                showStatus('Pincode must be exactly 6 digits.', 'text-red-600', document.getElementById('edit-profile-status'));
+                return;
+            }
+
+            // --- Photo Conversion ---
+            let photoBase64 = userProfile.photoBase64; // Start with the existing photo data
+
+            if (editProfilePhotoFile) {
+                if (editProfilePhotoFile.size > MAX_FILE_SIZE_BYTES) {
+                    showStatus('Profile photo exceeds the 1MB limit.', 'text-red-600', document.getElementById('edit-profile-status'));
+                    return;
+                }
+                photoBase64 = await fileToBase64(editProfilePhotoFile);
+            }
+
+            try {
+                document.getElementById('update-profile-btn').disabled = true;
+                showStatus('Saving profile...', 'text-gray-500', document.getElementById('edit-profile-status'));
+
+                const updatedProfileData = {
+                    name: name,
+                    address1: addr1,
+                    address2: addr2,
+                    subDistrict: subDist,
+                    district: district,
+                    pincode: pincode,
+                    state: state,
+                    photoBase64: photoBase64 // New base64 or previous base64
+                };
+
+                const profileDocRef = getUserProfileDocRef(userId);
+                await setDoc(profileDocRef, updatedProfileData);
+
+                // Update local state and UI immediately after successful save
+                userProfile = updatedProfileData;
+                loadUserProfile(userId); // Re-run load function to update the dashboard display
+
+                showStatus('Profile updated successfully!', 'text-green-600', document.getElementById('edit-profile-status'));
+                setTimeout(() => {
+                    handleNavigateBackFromProfileEdit();
+                }, 1000);
+
+            } catch (error) {
+                console.error("Error updating profile:", error);
+                showStatus('Error saving profile. Check console and Firebase rules.', 'text-red-600', document.getElementById('edit-profile-status'));
+            } finally {
+                document.getElementById('update-profile-btn').disabled = false;
+            }
+        }
+
+        // Utility to delete all documents within a user's subcollection using batched writes.
+        async function deleteUserCollection(collectionPathSegment) {
+            if (!userId) return;
+
+            const collectionRef = collection(db, 'users', userId, collectionPathSegment);
+            const snapshot = await getDocs(collectionRef);
+
+            if (snapshot.empty) return; // Nothing to delete
+
+            const batch = writeBatch(db);
+            snapshot.docs.forEach(doc => {
+                batch.delete(doc.ref);
+            });
+            await batch.commit();
+        }
+
+        async function handleDeleteUser() {
+            if (!userId || !auth.currentUser) {
+                showStatus('Error: User not authenticated.', 'text-red-600', document.getElementById('edit-profile-status'));
+                return;
+            }
+
+            if (!window.confirm('WARNING: Are you absolutely sure you want to delete your account? This action is PERMANENT and will delete ALL your transactions, accounts, and profile data.')) {
+                return;
+            }
+
+            // Double confirmation for destructive action
+            if (!window.confirm('LAST CHANCE: All data will be permanently lost. Click OK to proceed with deletion.')) {
+                return;
+            }
+
+            try {
+                document.getElementById('delete-account-btn').disabled = true;
+                showStatus('Deleting all data...', 'text-red-600', document.getElementById('edit-profile-status'));
+
+                // 1. Delete all Transactions and Accounts (This must be done before deleting the Auth user if security rules are tight)
+                await deleteUserCollection('creditCardTransactions');
+                await deleteUserCollection('savingsBankTransactions');
+                await deleteUserCollection('creditCardAccounts');
+                await deleteUserCollection('savingsBankAccounts');
+                showStatus('Deleted transactions and accounts.', 'text-red-600', document.getElementById('edit-profile-status'));
+
+                // 2. Delete Profile document
+                const profileDocRef = getUserProfileDocRef(userId);
+                await deleteDoc(profileDocRef);
+                showStatus('Deleted user profile document.', 'text-red-600', document.getElementById('edit-profile-status'));
+
+                // 3. Delete Auth user (This will trigger onAuthStateChanged -> logout)
+                await deleteUser(auth.currentUser);
+
+                showStatus('Account successfully deleted.', 'text-green-600', document.getElementById('edit-profile-status'));
+
+            } catch (error) {
+                let errorMessage = 'Failed to delete account.';
+
+                if (error.code === 'auth/requires-recent-login') {
+                    errorMessage = 'Security error: Please log out and log back in immediately to delete your account.';
+                } else {
+                    errorMessage += ` Details: ${error.message}`;
+                }
+
+                console.error("Account Deletion Error:", error);
+                showStatus(errorMessage, 'text-red-600', document.getElementById('edit-profile-status'));
+
+            } finally {
+                document.getElementById('delete-account-btn').disabled = false;
+            }
+        }
+
+        // --- ACCOUNT SELECTION & NAVIGATION ---
+
+        // Step 1: Handle selecting the general ledger type
+        function handleAccountTypeSelection(type) {
+            unsubscribeAllListeners(); // Stop transaction listener if coming from main app
+            selectedAccountType = type;
+            let titleText = type === 'creditCard' ? 'Credit Card Accounts' : 'Savings Bank Accounts';
+
+            // Update UI for the new selection screen
+            document.getElementById('specific-ledger-title').textContent = titleText;
+            hideElement(accountSelectionContainer);
+            showElement(specificAccountSelectionContainer);
+            hideElement(document.getElementById('specific-account-status')); // Clear status on screen transition
+
+            // Load list of specific accounts for this type
+            setupSpecificAccountListener();
+        }
+
+        // Step 2: Handle selecting a specific account (e.g., HDFC Regalia)
+        function handleSpecificAccountSelect(accountName) {
+            unsubscribeAllListeners(); // Stop old listeners before setting up new transaction listener
+            selectedSpecificAccountName = accountName;
+            let titleText = selectedAccountType === 'creditCard' ? 'Credit Card' : 'Savings Bank';
+
+            // Update Dashboard UI
+            document.getElementById('app-title').textContent = `${titleText}: ${accountName} Ledger`;
+            document.getElementById('current-specific-account-display').textContent = accountName;
+
+            // Ensure the dashboard form starts clean
+            document.getElementById('transaction-form').reset();
+            document.getElementById('date').value = new Date().toISOString().substring(0, 10);
+
+            // Show Dashboard
+            hideElement(specificAccountSelectionContainer);
+            showElement(appContainer);
+
+            // Load and filter transactions for the specific account
+            setupTransactionListener();
+        }
+
+        // Navigates from Dashboard back to Specific Account List (e.g., HDFC, Axis)
+        function handleNavigateToSpecificAccountSelection() {
+            // CRITICAL FIX: Ensure transaction listener is stopped
+            if (unsubscribeTransactions) {
+                unsubscribeTransactions();
+            }
+            selectedSpecificAccountName = null; // Clear specific account state
+
+            // FIX: Explicitly clear the account list UI before showing the screen
+            document.getElementById('specific-account-list').innerHTML = '';
+            hideElement(document.getElementById('specific-account-status')); // Clear status on screen transition
+
+            hideElement(appContainer);
+            showElement(specificAccountSelectionContainer);
+
+            // IMPROVEMENT: Show instant loading message right before the async call
+            showStatus('Loading your accounts...', 'text-gray-500', document.getElementById('specific-account-status'));
+
+            // Re-load the list for the current type
+            setupSpecificAccountListener();
+        }
+
+        // Navigates from Dashboard back to Ledger Type Selection (Credit Card vs Savings)
+        function handleNavigateToTypeSelection() {
+            unsubscribeAllListeners(); // Stop all listeners
+            selectedAccountType = null; // Clear type state
+            selectedSpecificAccountName = null; // Clear specific account state
+            hideElement(appContainer);
+            hideElement(specificAccountSelectionContainer);
+            showElement(accountSelectionContainer);
+        }
+
+        function setupSpecificAccountListener() {
+            // Unsubscribe existing listener (crucial fix)
+            if (unsubscribeSpecificAccounts) {
+                unsubscribeSpecificAccounts();
+            }
+
+            if (!userId || !selectedAccountType) return;
+
+            const accountsCollectionRef = getSpecificAccountsCollectionPath(selectedAccountType);
+            if (!accountsCollectionRef) return;
+
+            const listEl = document.getElementById('specific-account-list');
+            const noAccountsMessage = document.getElementById('no-accounts-message');
+
+            // Show a dynamic loading state immediately while data fetches
+            listEl.innerHTML = '<p class="text-gray-500">Loading accounts...</p>';
+            hideElement(noAccountsMessage);
+
+            const q = query(accountsCollectionRef);
+
+            // Set up new listener and save the unsubscribe function
+            unsubscribeSpecificAccounts = onSnapshot(q, (snapshot) => {
+                // Hide the instant loading message once data arrives
+                hideElement(document.getElementById('specific-account-status'));
+
+                listEl.innerHTML = '';
+                const accounts = [];
+                snapshot.forEach(doc => {
+                    accounts.push({ id: doc.id, ...doc.data() });
+                });
+
+                if (accounts.length === 0) {
+                    showElement(noAccountsMessage);
+                    listEl.innerHTML = ''; // Ensure list is truly empty if no accounts
+                } else {
+                    hideElement(noAccountsMessage);
+                    accounts.forEach(account => {
+
+                        const wrapper = document.createElement('div');
+                        wrapper.className = 'flex items-center justify-between bg-gray-100 rounded-lg p-3 hover:bg-gray-200 transition duration-150 cursor-pointer';
+
+                        const selectBtn = document.createElement('button');
+                        selectBtn.textContent = account.name;
+                        selectBtn.className = 'flex-1 text-left text-lg font-medium text-gray-800 focus:outline-none';
+                        selectBtn.addEventListener('click', () => handleSpecificAccountSelect(account.name));
+
+                        const deleteBtn = document.createElement('button');
+                        deleteBtn.innerHTML = `
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                                <path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd" />
+                            </svg>
+                        `;
+                        deleteBtn.className = 'text-red-500 hover:text-red-700 ml-4 p-1 rounded-full hover:bg-red-200 transition duration-150 flex-shrink-0';
+                        deleteBtn.setAttribute('title', `Delete ${account.name}`);
+                        deleteBtn.addEventListener('click', (e) => {
+                            e.stopPropagation(); // IMPORTANT: Stops the click from opening the ledger
+                            handleDeleteAccount(account.id, account.name);
+                        });
+
+                        wrapper.appendChild(selectBtn);
+                        wrapper.appendChild(deleteBtn);
+                        listEl.appendChild(wrapper);
+                    });
+                }
+            }, (error) => {
+                console.error("Error fetching specific accounts: ", error);
+                listEl.innerHTML = `<p class="text-red-600">Error loading accounts. Please check Firebase Rules or your network connection.</p>`;
+            });
+        }
+
+        async function handleAddSpecificAccount(e) {
+            e.preventDefault();
+            const newAccountName = document.getElementById('new-account-name').value.trim();
+
+            if (!newAccountName || !userId || !selectedAccountType) return;
+
+            const accountsCollectionRef = getSpecificAccountsCollectionPath(selectedAccountType);
+            if (!accountsCollectionRef) return;
+
+            try {
+                // Add account to Firestore
+                await addDoc(accountsCollectionRef, {
+                    name: newAccountName,
+                    createdAt: new Date().toISOString()
+                });
+
+                document.getElementById('new-account-name').value = '';
+
+                // Navigate directly to the main dashboard for the newly created account
+                handleSpecificAccountSelect(newAccountName);
+
+            } catch (error) {
+                console.error("Error adding specific account: ", error);
+                showStatus('Could not add account. See console.', 'text-red-600', document.getElementById('specific-account-status'));
+            }
+        }
+
+        async function handleDeleteAccount(accountId, accountName) {
+            // Custom confirmation dialog replacement
+            if (!window.confirm(`Are you sure you want to delete the account: ${accountName}? This action cannot be undone and can only proceed if the account is empty.`)) {
+                return;
+            }
+
+            if (!userId || !db || !selectedAccountType) {
+                showStatus('Application state error. Cannot proceed.', 'text-red-600', document.getElementById('specific-account-status'));
+                return;
+            }
+
+            const accountsCollectionRef = getSpecificAccountsCollectionPath(selectedAccountType);
+            const transactionsCollectionRef = getCollectionPath(selectedAccountType);
+
+            if (!accountsCollectionRef || !transactionsCollectionRef) return;
+
+            // IMPORTANT: Check if there are associated transactions first
+            try {
+                // We limit the query to 1 document. If it's not empty, we know transactions exist.
+                const q = query(transactionsCollectionRef, where('account', '==', accountName), limit(1));
+                const transactionSnapshot = await getDocs(q);
+
+                if (!transactionSnapshot.empty) {
+                    showStatus(`Cannot delete "${accountName}". Please **delete all associated transactions** from the main ledger first.`, 'text-red-600', document.getElementById('specific-account-status'));
+                    return;
+                }
+
+                // Proceed with account document deletion
+                const docRef = doc(accountsCollectionRef, accountId);
+                await deleteDoc(docRef);
+                showStatus(`Account "${accountName}" deleted successfully.`, 'text-green-600', document.getElementById('specific-account-status'));
+
+            } catch (error) {
+                console.error("Error checking or deleting account:", error);
+                showStatus('Error deleting account. Check Firebase rules or console.', 'text-red-600', document.getElementById('specific-account-status'));
+            }
+        }
+
+        // --- TRANSACTION HANDLERS ---
+
+        async function handleAddTransaction(e) {
+            e.preventDefault();
+
+            if (!selectedAccountType || !selectedSpecificAccountName) {
+                showStatus('Error: Please select a specific account first.', 'text-red-600', document.getElementById('transaction-status'));
+                return;
+            }
+
+            const date = document.getElementById('date').value;
+            const description = document.getElementById('description').value.trim();
+            const amount = parseFloat(document.getElementById('amount').value);
+            const type = document.getElementById('type').value;
+            const category = document.getElementById('category').value;
+
+            if (isNaN(amount) || amount <= 0 || !date || !description) {
+                showStatus('Please fill out all transaction fields correctly.', 'text-red-600', document.getElementById('transaction-status'));
+                return;
+            }
+
+            const collectionRef = getCollectionPath(selectedAccountType);
+            if (!collectionRef) return;
+
+            try {
+                const transactionData = {
+                    date: date,
+                    description: description,
+                    amount: amount,
+                    type: type,
+                    category: category,
+                    account: selectedSpecificAccountName,
+                    createdAt: new Date().toISOString()
+                };
+                await addDoc(collectionRef, transactionData);
+                document.getElementById('transaction-form').reset();
+                document.getElementById('date').value = new Date().toISOString().substring(0, 10); // Reset date to today
+                showStatus('Transaction recorded successfully!', 'text-green-600', document.getElementById('transaction-status'));
+            } catch (error) {
+                console.error("Error recording transaction:", error);
+                showStatus('Error recording transaction.', 'text-red-600', document.getElementById('transaction-status'));
+            }
+        }
+
+        function setupTransactionListener() {
+            if (unsubscribeTransactions) {
+                unsubscribeTransactions(); // Stop previous listener
+            }
+
+            if (!userId || !selectedAccountType || !selectedSpecificAccountName) return;
+
+            const collectionRef = getCollectionPath(selectedAccountType);
+            if (!collectionRef) return;
+
+            // The main query: filter by specific account, then sort by date and creation time
+            let q = query(
+                collectionRef,
+                where('account', '==', selectedSpecificAccountName), // Filter by selected account
+                orderBy('date', 'desc'),
+                orderBy('createdAt', 'desc')
+            );
+
+            const filterStartDate = document.getElementById('filter-start-date').value;
+            const filterEndDate = document.getElementById('filter-end-date').value;
+
+            // Add date filtering logic if inputs are provided
+            if (filterStartDate) {
+                q = query(q, where('date', '>=', filterStartDate));
+            }
+            if (filterEndDate) {
+                q = query(q, where('date', '<=', filterEndDate));
+            }
+
+            const transactionListEl = document.getElementById('transaction-list');
+            transactionListEl.innerHTML = `<tr><td colspan="6" class="px-3 py-4 text-center text-gray-500">Loading transactions for ${selectedSpecificAccountName}...</td></tr>`;
+
+            // Start listening for real-time updates
+            unsubscribeTransactions = onSnapshot(q, (snapshot) => {
+                allTransactions = [];
+                snapshot.forEach(doc => {
+                    allTransactions.push({ id: doc.id, ...doc.data() });
+                });
+
+                renderTransactions();
+                updateSummary();
+
+            }, (error) => {
+                console.error("Error listening to transactions: ", error);
+                transactionListEl.innerHTML = `<tr><td colspan="6" class="px-3 py-4 text-center text-red-600">Error loading data. Check console.</td></tr>`;
+            });
+        }
+
+        function renderTransactions() {
+            const transactionListEl = document.getElementById('transaction-list');
+            transactionListEl.innerHTML = ''; // Clear existing list
+
+            if (allTransactions.length === 0) {
+                transactionListEl.innerHTML = `<tr><td colspan="6" class="px-3 py-4 text-center text-gray-500">No transactions recorded for this account.</td></tr>`;
+                return;
+            }
+
+            allTransactions.forEach(t => {
+                const row = document.createElement('tr');
+                const amountClass = t.type === 'debit' ? 'debit font-medium' : 'credit font-medium';
+                const sign = t.type === 'debit' ? '-' : '+';
+
+                row.innerHTML = `
+                    <td class="px-3 py-3 whitespace-nowrap text-sm text-gray-800">${t.date}</td>
+                    <td class="px-3 py-3 whitespace-nowrap text-sm text-gray-500">${t.account}</td>
+                    <td class="px-3 py-3 whitespace-nowrap text-sm text-gray-800">${t.description}</td>
+                    <td class="px-3 py-3 whitespace-nowrap text-xs text-gray-500">${t.category}</td>
+                    <td class="px-3 py-3 whitespace-nowrap text-sm text-right ${amountClass}">
+                        ${sign} ${formatCurrency(t.amount)}
+                    </td>
+                    <td class="px-3 py-3 whitespace-nowrap text-center text-sm font-medium">
+                        <button data-id="${t.id}" class="delete-transaction-btn text-red-500 hover:text-red-700">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mx-auto" viewBox="0 0 20 20" fill="currentColor">
+                                <path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd" />
+                            </svg>
+                        </button>
+                    </td>
+                `;
+                transactionListEl.appendChild(row);
+            });
+
+            // Add listeners for delete buttons
+            document.querySelectorAll('.delete-transaction-btn').forEach(button => {
+                button.addEventListener('click', handleDeleteTransaction);
+            });
+        }
+
+        function updateSummary() {
+            let totalCredit = 0;
+            let totalDebit = 0;
+
+            allTransactions.forEach(t => {
+                if (t.type === 'credit') {
+                    totalCredit += t.amount;
+                } else if (t.type === 'debit') {
+                    totalDebit += t.amount;
+                }
+            });
+
+            const netBalance = totalCredit - totalDebit;
+
+            document.getElementById('total-credit').textContent = formatCurrency(totalCredit);
+            document.getElementById('total-debit').textContent = formatCurrency(totalDebit);
+            document.getElementById('net-balance').textContent = formatCurrency(netBalance);
+            document.getElementById('net-balance').classList.remove('debit', 'credit');
+            if (netBalance < 0) {
+                document.getElementById('net-balance').classList.add('debit');
+            } else if (netBalance > 0) {
+                document.getElementById('net-balance').classList.add('credit');
+            }
+        }
+
+        async function handleDeleteTransaction(e) {
+            const transactionId = e.currentTarget.dataset.id;
+            if (!window.confirm('Are you sure you want to delete this transaction?')) return;
+
+            if (!userId || !selectedAccountType || !transactionId) return;
+
+            const collectionRef = getCollectionPath(selectedAccountType);
+            if (!collectionRef) return;
+
+            try {
+                await deleteDoc(doc(collectionRef, transactionId));
+                showStatus('Transaction deleted successfully.', 'text-green-600', document.getElementById('transaction-status'));
+            } catch (error) {
+                console.error("Error deleting transaction:", error);
+                showStatus('Error deleting transaction. Check console.', 'text-red-600', document.getElementById('transaction-status'));
+            }
+        }
+
+        function handleFilterTransactions(e) {
+            e.preventDefault();
+            // Re-run the transaction listener. The listener itself includes the filtering logic.
+            setupTransactionListener();
+            showStatus('Filter applied.', 'text-gray-500', document.getElementById('transaction-status'));
+        }
+
+        function handleClearFilter() {
+            document.getElementById('filter-start-date').value = '';
+            document.getElementById('filter-end-date').value = '';
+            // Re-run the transaction listener to show all transactions
+            setupTransactionListener();
+            showStatus('Filter cleared.', 'text-gray-500', document.getElementById('transaction-status'));
+        }
+
+        // --- APP STARTUP ---
+
+        function initFirebase() {
+            // Check for mock config use
+           
+
+            try {
+                const app = initializeApp(firebaseConfig);
+                auth = getAuth(app);
+                db = getFirestore(app);
+
+                // Run verification check immediately on load
+                checkEmailVerificationOnLoad();
+
+                // Auth State Listener: Controls application flow based on login status
+                onAuthStateChanged(auth, (user) => {
+                    if (user) {
+                        userId = user.uid;
+                        loadUserProfile(userId);
+
+                        // If user is logged in, show account selection
+                        hideElement(authContainer);
+                        hideElement(profileEditContainer);
+                        hideElement(appContainer);
+
+                        // Check if a type/account was previously selected (e.g., after profile edit)
+                        if (selectedAccountType && selectedSpecificAccountName) {
+                            handleSpecificAccountSelect(selectedSpecificAccountName);
+                        } else if (selectedAccountType) {
+                            handleAccountTypeSelection(selectedAccountType);
+                        } else {
+                            showElement(accountSelectionContainer);
+                        }
+
+                        // Clear any previous sign-in status
+                        authStatusEl.textContent = '';
+                        hideElement(authStatusEl);
+
+                    } else {
+                        // User logged out or not signed in
+                        userId = null;
+                        selectedAccountType = null;
+                        selectedSpecificAccountName = null;
+                        isEmailVerified = false; // Reset verification status on logout
+                        unsubscribeAllListeners(); // Stop all database connections
+
+                        // Show Auth screen
+                        hideElement(accountSelectionContainer);
+                        hideElement(specificAccountSelectionContainer);
+                        hideElement(profileEditContainer);
+                        hideElement(appContainer);
+                        showElement(authContainer);
+
+                        // Ensure only the sign-in view is visible upon logout
+                        hideElement(signupStep1View);
+                        hideElement(signupStep2View);
+                        hideElement(signupStep3View);
+                        showElement(signinView);
+
+                        isSigningUp = false; // Reset signup state
+                        authTitle.textContent = 'Sign In'; // Reset title
+                        document.getElementById('auth-toggle-btn').textContent = 'Need an account? Sign Up';
+                    }
+                });
+
+            } catch (error) {
+                console.error("Error during Firebase initialization:", error);
+                showStatus(`Database not configured. Error: ${error.message}`, 'text-red-600', authStatusEl);
+            }
+        }
+
+        // --- ATTACH EVENT LISTENERS (CRITICAL FIXES) ---
+
+        document.addEventListener('DOMContentLoaded', () => {
+
+            // Set today's date as default in the form
+            document.getElementById('date').value = new Date().toISOString().substring(0, 10);
+
+            const stateSelectSignup = document.getElementById('state');
+            const districtSelectSignup = document.getElementById('district');
+            const stateSelectEdit = document.getElementById('edit-state');
+            const districtSelectEdit = document.getElementById('edit-district');
+            const typeSelect = document.getElementById('type');
+            const categorySelect = document.getElementById('category');
+            const incomeGroup = document.getElementById('income-options');
+            const expenseGroup = document.getElementById('expense-options');
+            // Initialize State/District dropdowns on load
+            populateStates(stateSelectSignup, districtSelectSignup);
+
+            // Add cascade listeners for signup form
+            stateSelectSignup.addEventListener('change', () => populateDistricts(stateSelectSignup, districtSelectSignup));
+
+            // Add cascade listeners for edit form (listeners are also set in populateProfileEditForm for initial load)
+            stateSelectEdit.addEventListener('change', () => populateDistricts(stateSelectEdit, districtSelectEdit));
+
+            // Add Pincode validation listeners for all relevant fields
+            setupPincodeValidation();
+
+
+            // ----------------------------------------------------
+            // CORE EVENT LISTENERS (FIXED/ADDED)
+            // ----------------------------------------------------
+
+            // AUTHENTICATION LISTENERS
+            document.getElementById('signin-form').addEventListener('submit', handleSignIn);
+            document.getElementById('reset-password-btn').addEventListener('click', handlePasswordReset);
+            document.getElementById('auth-toggle-btn').addEventListener('click', toggleAuthMode);
+
+            // SIGN UP STEP LISTENERS
+            document.getElementById('signup-step-1-form').addEventListener('submit', handleSignupNext);
+            checkVerificationBtn.addEventListener('click', handleCheckVerification);
+            otpBackBtn.addEventListener('click', handleSignupBack);
+            backStepBtn3.addEventListener('click', handleSignupBack); // Back button on Step 3
+            document.getElementById('signup-step-3-form').addEventListener('submit', handleFinalSignup);
+
+            // PROFILE PHOTO LISTENERS
+            profilePhotoInput.addEventListener('change', (e) => {
+                const file = e.target.files[0];
+                if (file) {
+                    if (file.size > MAX_FILE_SIZE_BYTES) {
+                        showStatus('Photo size is too large (Max 1MB).', 'text-red-600', authStatusEl);
+                        profilePhotoFile = null;
+                        e.target.value = '';
+                        return;
+                    }
+                    profilePhotoFile = file;
+                    hideElement(authStatusEl);
+                } else {
+                    profilePhotoFile = null;
+                }
+            });
+            document.getElementById('edit-profile-photo').addEventListener('change', (e) => {
+                const file = e.target.files[0];
+                const editStatusEl = document.getElementById('edit-photo-status');
+                if (file) {
+                    if (file.size > MAX_FILE_SIZE_BYTES) {
+                        showStatus('Photo size is too large (Max 1MB).', 'text-red-600', editStatusEl);
+                        editProfilePhotoFile = null;
+                        e.target.value = '';
+                        return;
+                    }
+                    editProfilePhotoFile = file;
+                    showStatus(`New photo selected: ${file.name}`, 'text-green-600', editStatusEl);
+                } else {
+                    editProfilePhotoFile = null;
+                    hideElement(editStatusEl);
+                }
+            });
+
+
+            // APP NAVIGATION & ACCOUNT SELECTION LISTENERS
+            document.querySelectorAll('.select-account-type-btn').forEach(button => {
+                button.addEventListener('click', (e) => handleAccountTypeSelection(e.currentTarget.dataset.type));
+            });
+            document.getElementById('specific-selection-back-btn').addEventListener('click', handleNavigateToTypeSelection);
+            document.getElementById('add-specific-account-form').addEventListener('submit', handleAddSpecificAccount);
+
+            // DASHBOARD NAVIGATION & LOGOUT
+            document.getElementById('change-account-btn').addEventListener('click', handleNavigateToSpecificAccountSelection);
+            document.getElementById('change-ledger-type-btn').addEventListener('click', handleNavigateToTypeSelection);
+            document.querySelectorAll('#selection-logout-btn, #header-logout-btn').forEach(btn => {
+                btn.addEventListener('click', handleLogout);
+            });
+
+            // PROFILE MENU & EDIT
+            document.getElementById('profile-photo-display').addEventListener('click', () => {
+                document.getElementById('profile-menu').classList.toggle('hidden');
+            });
+            document.getElementById('edit-profile-menu-btn').addEventListener('click', handleNavigateToProfileEdit);
+            document.getElementById('cancel-edit-btn').addEventListener('click', handleNavigateBackFromProfileEdit);
+            document.getElementById('profile-edit-form').addEventListener('submit', handleProfileUpdate);
+            document.getElementById('delete-account-btn').addEventListener('click', handleDeleteUser);
+
+            // TRANSACTION & FILTER
+            document.getElementById('transaction-form').addEventListener('submit', handleAddTransaction);
+            document.getElementById('filter-form').addEventListener('submit', handleFilterTransactions);
+            document.getElementById('clear-filter-btn').addEventListener('click', handleClearFilter);
+
+            // ----------------------------------------------------
+
+            // Initialize Firebase after DOM is fully loaded
+            initFirebase();
+            function updateCategoryOptions() {
+                if (typeSelect.value === 'credit') {
+                    incomeGroup.hidden = false;    // Show Income
+                    expenseGroup.hidden = true;    // Hide Expenses
+                    categorySelect.value = "Salary"; // Default to first income
+                } else {
+                    incomeGroup.hidden = true;     // Hide Income
+                    expenseGroup.hidden = false;   // Show Expenses
+                    categorySelect.value = "Other";  // Default to an expense
+                }
+            }
+
+            // Initial run to set the state correctly on page load
+            updateCategoryOptions();
+
+            // Listen for changes on the Type dropdown
+            typeSelect.addEventListener('change', updateCategoryOptions);
+            // --------------------------------
+        });
+
+    </script>
+
+
+    <script>
+
+        document.getElementById('download-pdf-btn').addEventListener('click', function () {
+            try {
+                const { jsPDF } = window.jspdf;
+                const doc = new jsPDF();
+
+                // 1. Data Prep & Symbol Fix (CRITICAL for Mac)
+                const userName = document.getElementById('user-display-name').textContent || "User";
+                const accountName = document.getElementById('current-specific-account-display').textContent || "Account";
+                const totalCredit = document.getElementById('total-credit').textContent.replace('₹', 'Rs.');
+                const totalDebit = document.getElementById('total-debit').textContent.replace('₹', 'Rs.');
+                const netBalance = document.getElementById('net-balance').textContent.replace('₹', 'Rs.');
+
+                // 2. Header Section
+                doc.setFontSize(28);
+                doc.setTextColor(37, 99, 235); // Blue-600
+                doc.text("Financial Ledger Report", 14, 22);
+
+                doc.setFontSize(20);
+                doc.setFont("helvetica", "bold");
+                doc.setTextColor(127, 0, 255);
+                doc.text(`User: ${userName}`, 14, 32);
+                doc.text(`Account: ${accountName}`, 14, 40);
+                doc.text(`Generated: ${new Date().toLocaleString()}`, 14, 48);
+
+                // 3. Colorful Summary Section
+                // Draw a simple blue background rectangle
+                doc.setFillColor(239, 246, 255);
+                doc.rect(14, 52, 182, 18, 'F');
+
+                doc.setFontSize(14);
+                doc.setTextColor(22, 163, 74); // Green for Income
+                doc.text(`Income: ${totalCredit}`, 20, 62);
+
+                doc.setTextColor(220, 38, 38); // Red for Expense
+                doc.text(`Expense: ${totalDebit}`, 80, 62);
+
+                const balanceValue = parseFloat(netBalance.replace(/[^0-9.-]+/g, ""));
+
+                if (balanceValue > 0) {
+                    doc.setTextColor(22, 163, 74); // Green-600 for positive balance
+                } else if (balanceValue < 0) {
+                    doc.setTextColor(220, 38, 38); // Red-600 for negative balance
+                } else {
+                    doc.setTextColor(0, 0, 0);      // Black for exactly zero
+                }
+
+                doc.setFont("helvetica", "bold");
+                doc.text(`Net Balance: ${netBalance}`, 140, 62);
+                doc.setFont("helvetica", "normal");
+                doc.setTextColor(0, 0, 0); 
+
+                // 4. Transaction Table
+                doc.autoTable({
+                    head: [['Date', 'Account', 'Description', 'Category', 'Amount (Rs.)']],
+                    html: '#transaction-list',
+                    startY: 76,
+                    theme: 'striped',
+                    headStyles: {
+                        fillColor: [37, 99, 235], // Blue Header
+                        halign: 'center'
+                    },
+                    columnStyles: {
+                        4: { halign: 'right' }
+                    },
+                    didParseCell: function (data) {
+                        // Fix symbols in table rows
+                        if (data.cell.section === 'body' && data.cell.text) {
+                            data.cell.text = data.cell.text.map(t => t.replace('₹', 'Rs.'));
+                        }
+                        // Hide Action column
+                        if (data.column.index === 5) {
+                            data.cell.text = '';
+                        }
+                    }
+                });
+
+                // 5. Final Save (Mac-Friendly Name)
+                const safeName = accountName.replace(/[^a-z0-9]/gi, '_').toLowerCase();
+                doc.save(`${safeName}_report.pdf`);
+
+            } catch (error) {
+                console.error("PDF Crash:", error);
+                alert("Error generating PDF. Please check the Console (Cmd+Opt+J).");
+            }
+        });
+    </script>
+</body>
+
+</html>
