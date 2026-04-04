@@ -50,6 +50,18 @@
             border-color: #1d4ed8;
         }
 
+        #profile-menu {
+            position: absolute;
+            left: 0;
+            /* This ensures it stays on the left */
+            top: 50px;
+            width: 150px;
+            background: white;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            z-index: 100;
+        }
+
         #auth-container {
             min-height: 100vh;
             align-items: flex-start;
@@ -79,12 +91,47 @@
         .transition-transform-opacity {
             transition: opacity 0.4s ease-in-out, transform 0.4s ease-in-out;
         }
+
+        .hidden {
+            display: none !important;
+        }
+
+        /* Ensure the auth container is visible if JS hasn't run yet */
+        #auth-container:not(.hidden) {
+            display: flex !important;
+        }
+
+        #global-header {
+            /* Standard padding + dynamic padding for the status bar area */
+            padding-top: calc(env(safe-area-inset-top, 24px) + 10px) !important;
+            padding-bottom: 12px !important;
+            background-color: white;
+            width: 100%;
+            position: sticky;
+            top: 0;
+            z-index: 9999;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border-bottom: 1px solid #e5e7eb;
+        }
+
+        .profile-pic {
+            width: 42px !important;
+            height: 42px !important;
+            border-radius: 50% !important;
+            object-fit: cover;
+            flex-shrink: 0;
+            border: 2px solid #3b82f6;
+            /* Optional: adds a blue ring around the photo */
+        }
     </style>
 </head>
 
 <body class="min-h-screen p-4 md:p-8">
 
     <div id="auth-container" class="auth-container">
+
         <div class="w-full max-w-lg p-8 bg-white rounded-xl card text-center">
             <h1 class="text-3xl font-extrabold text-gray-800 mb-6" id="auth-title">Sign In</h1>
             <div id="auth-status" class="text-sm pt-2 text-red-600 hidden mb-4"></div>
@@ -220,6 +267,8 @@
     </div>
 
     <div id="account-selection-container" class="auth-container hidden">
+
+
         <div class="w-full max-w-md p-8 bg-white rounded-xl card text-center">
             <h1 class="text-3xl font-extrabold text-gray-800 mb-6">Select Ledger Type</h1>
             <p class="text-gray-600 mb-8">Choose the type of account you wish to manage.</p>
@@ -233,6 +282,15 @@
                     class="select-account-type-btn w-full py-4 px-4 rounded-md shadow-sm text-lg font-medium text-white bg-teal-600 hover:bg-teal-700 transition duration-150">
                     Savings Bank Account Ledger
                 </button>
+
+                <button data-type="customer"
+                    class="select-account-type-btn w-full py-4 px-4 rounded-md shadow-sm text-lg font-medium text-white bg-orange-600 hover:bg-orange-700 transition duration-150">
+                    Customer Ledger (Receivables)
+                </button>
+                <button data-type="biller"
+                    class="select-account-type-btn w-full py-4 px-4 rounded-md shadow-sm text-lg font-medium text-white bg-purple-600 hover:bg-purple-700 transition duration-150">
+                    Biller / Vendor Ledger (Payables)
+                </button>
             </div>
 
             <button id="selection-logout-btn"
@@ -242,10 +300,11 @@
         </div>
     </div>
 
+
     <div id="specific-account-selection-container" class="auth-container hidden">
         <div class="w-full max-w-2xl p-8 bg-white rounded-xl card text-center">
             <h1 class="text-3xl font-extrabold text-gray-800 mb-2" id="specific-ledger-title"></h1>
-            <p class="text-sm text-gray-500 mb-6">Select an existing account to view its ledger or add a new one.</p>
+            <p class="text-sm text-gray-500 mb-6">Select an existing account or add a new one.</p>
 
             <form id="add-specific-account-form"
                 class="flex flex-col sm:flex-row gap-2 mb-4 items-center justify-center">
@@ -257,10 +316,15 @@
                 </button>
             </form>
 
+            <div class="mb-4 relative">
+                <input type="text" id="search-ledgers" placeholder="Search Ledgers..."
+                    class="block w-full px-3 py-2 border border-gray-300 rounded-md leading-5 bg-gray-50 placeholder-gray-500 focus:ring-1 focus:ring-indigo-500 sm:text-sm">
+            </div>
+
             <div id="specific-account-status" class="text-sm pt-2 mb-4 hidden"></div>
 
             <div id="specific-account-list" class="space-y-3 max-h-80 overflow-y-auto p-2">
-                <p class="text-gray-500" id="no-accounts-message">No accounts found. Please add one above.</p>
+                <p class="text-gray-500" id="no-accounts-message">No accounts found.</p>
             </div>
 
             <button id="specific-selection-back-btn" class="mt-8 text-blue-600 hover:text-blue-700 text-sm">
@@ -270,6 +334,7 @@
     </div>
 
     <div id="profile-edit-container" class="auth-container hidden">
+
         <div class="w-full max-w-lg p-8 bg-white rounded-xl card text-center">
             <h1 class="text-3xl font-extrabold text-gray-800 mb-6">Edit Profile</h1>
             <form id="profile-edit-form" class="space-y-4 text-left">
@@ -334,18 +399,14 @@
 
 
     <div id="app-container" class="max-w-6xl mx-auto hidden">
-        <header class="text-center mb-6 flex justify-between items-center">
-            <h1 class="4xl font-extrabold text-gray-800" id="app-title">My Financial Ledger</h1>
-            <div class="flex items-center space-x-4 relative">
-
-                <div class="text-right flex items-center space-x-2">
-                    <span id="user-display-name" class="hidden sm:inline text-gray-700 font-medium">Loading...</span>
-
+        <header class="flex items-center justify-between p-4 bg-white shadow-md sticky top-0 z-50 mb-6">
+            <div class="flex items-center space-x-3">
+                <div class="relative">
                     <img id="profile-photo-display" src="https://placehold.co/40x40/3b82f6/ffffff?text=U"
                         class="profile-pic" alt="Profile Photo">
 
                     <div id="profile-menu"
-                        class="absolute right-0 top-full mt-2 w-36 bg-white rounded-lg shadow-lg py-1 hidden z-10 border border-gray-200">
+                        class="absolute left-0 top-full mt-2 w-40 bg-white rounded-lg shadow-lg py-1 hidden z-10 border border-gray-200">
                         <button id="edit-profile-menu-btn"
                             class="w-full text-left px-4 py-2 text-sm text-blue-600 hover:bg-blue-50 rounded-md">
                             Edit Profile
@@ -357,16 +418,22 @@
                     </div>
                 </div>
 
-                <div class="flex space-x-3">
-                    <button id="change-account-btn"
-                        class="py-1 px-3 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-gray-600 hover:bg-gray-700 transition duration-150">
-                        Change Account
-                    </button>
-                    <button id="change-ledger-type-btn"
-                        class="py-1 px-3 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-gray-500 hover:bg-gray-600 transition duration-150">
-                        Change Ledger Type
-                    </button>
+                <div class="flex flex-col">
+                    <span id="user-display-name"
+                        class="text-xs text-gray-700 font-medium leading-tight">Loading...</span>
+                    <h1 class="text-sm font-bold text-gray-800" id="app-title">My Financial Ledger</h1>
                 </div>
+            </div>
+
+            <div class="flex space-x-2">
+                <button id="change-account-btn"
+                    class="py-1 px-3 border border-transparent rounded-md shadow-sm text-xs font-medium text-white bg-gray-600 hover:bg-gray-700 transition duration-150">
+                    Account
+                </button>
+                <button id="change-ledger-type-btn"
+                    class="py-1 px-3 border border-transparent rounded-md shadow-sm text-xs font-medium text-white bg-gray-500 hover:bg-gray-600 transition duration-150">
+                    Type
+                </button>
             </div>
         </header>
 
@@ -375,7 +442,6 @@
             <div class="lg:col-span-1 p-6 bg-white rounded-xl card h-fit">
                 <h2 class2="2xl font-semibold mb-6 text-gray-700" id="form-header">Record Transaction</h2>
                 <form id="transaction-form" class="space-y-4">
-
                     <div class="p-3 bg-gray-50 rounded-md border border-gray-200">
                         <label class="block text-sm font-medium text-gray-500">Currently Recording To:</label>
                         <p id="current-specific-account-display" class="font-semibold text-gray-800 text-lg mt-1">N/A
@@ -404,7 +470,6 @@
                         <label for="type" class="block text-sm font-medium text-gray-700">Type</label>
                         <select id="type" required
                             class="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2 border focus:ring-blue-500 focus:border-blue-500 bg-white">
-
                             <option value="credit">Credit (Income)</option>
                             <option value="debit">Debit (Expense)</option>
                         </select>
@@ -424,9 +489,7 @@
                                 <option value="Trading">Trading Profits</option>
                                 <option value="Freelance">Freelance</option>
                                 <option value="Gift/Refund">Gift / Refund</option>
-                                <option value="Gift/Refund">Gift / Refund</option>
                                 <option value="Other">Other Income</option>
-
                             </optgroup>
                             <optgroup label="Expenses (Debit)">
                                 <option value="Food">Food & Groceries</option>
@@ -440,6 +503,8 @@
                             </optgroup>
                         </select>
                     </div>
+
+
 
                     <button type="submit" id="auth-submit-btn"
                         class="w-full py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition ease-in-out duration-150">
@@ -504,6 +569,16 @@
                         </button>
                     </div>
                 </div>
+                <div class="mb-4 relative">
+                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                        <svg class="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                        </svg>
+                    </div>
+                    <input type="text" id="search-transactions" placeholder="Search by description or category..."
+                        class="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md leading-5 bg-white placeholder-gray-500 focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
+                </div>
 
                 <div class="p-6 bg-white rounded-xl card">
                     <h2 class="2xl font-semibold mb-6 text-gray-700">Transaction History</h2>
@@ -548,13 +623,21 @@
     </div>
 
     <script type="module">
+        // Force the login screen to show up immediately in case of slow internet
+        document.addEventListener('DOMContentLoaded', () => {
+            document.getElementById('auth-container').classList.remove('hidden');
+        });
+
         // --- AUTH IMPORTS ---
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, onAuthStateChanged, signOut, sendPasswordResetEmail, deleteUser, sendSignInLinkToEmail, isSignInWithEmailLink, signInWithEmailLink } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         // --- FIRESTORE IMPORTS ---
         import { getFirestore, collection, addDoc, onSnapshot, query, orderBy, doc, deleteDoc, where, getDocs, limit, setDoc, getDoc, writeBatch } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
         import { setLogLevel } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
-
+        window.onerror = function (msg, url, linenumber) {
+            alert('Error message: ' + msg + '\nURL: ' + url + '\nLine Number: ' + linenumber);
+            return true;
+        };
         // setLogLevel('debug'); // Uncomment for debugging
 
         // ---------------------------------------------------------------------------------
@@ -677,13 +760,23 @@
             }).format(amount);
         }
 
-        function showElement(el) { el.classList.remove('hidden'); }
-        function hideElement(el) { el.classList.add('hidden'); }
+        function showElement(el) {
+            if (!el) return;
+            el.classList.remove('hidden');
+        }
+
+        function hideElement(el) {
+            if (!el) return;
+            el.classList.add('hidden');
+        }
 
         function showStatus(message, colorClass, element) {
+            if (!element) return; // Prevents the 'classList' error
             element.textContent = message;
             element.className = `text-sm pt-2 text-center ${colorClass}`;
             showElement(element);
+
+            // Hide after a few seconds unless it's a critical setup error
 
             // Hide after a few seconds unless it's a critical setup error
             if (!message.includes('Local setup incomplete') && !message.includes('Database not configured') && colorClass !== 'text-red-600') {
@@ -696,18 +789,46 @@
         // Returns the collection reference for transactions based on the account type
         function getCollectionPath(type) {
             if (!userId) return null;
-            if (type === 'creditCard') {
-                return collection(db, 'users', userId, 'creditCardTransactions');
-            } else if (type === 'savingsBank') {
-                return collection(db, 'users', userId, 'savingsBankTransactions');
+
+            // Maps the ledger type to its specific Firestore subcollection
+            switch (type) {
+                case 'creditCard':
+                    return collection(db, 'users', userId, 'creditCardTransactions');
+                case 'savingsBank':
+                    return collection(db, 'users', userId, 'savingsBankTransactions');
+                case 'customer':
+                    return collection(db, 'users', userId, 'customerTransactions');
+                case 'biller':
+                    return collection(db, 'users', userId, 'billerTransactions');
+                default:
+                    console.warn("Unknown ledger type provided:", type);
+                    return null;
             }
-            return null;
         }
 
         // Returns the collection reference for specific accounts (e.g., HDFC Regalia, SBI Savings)
         function getSpecificAccountsCollectionPath(type) {
             if (!userId) return null;
-            const pathSegment = type === 'creditCard' ? 'creditCardAccounts' : 'savingsBankAccounts';
+
+            let pathSegment;
+            switch (type) {
+                case 'creditCard':
+                    pathSegment = 'creditCardAccounts';
+                    break;
+                case 'savingsBank':
+                    pathSegment = 'savingsBankAccounts';
+                    break;
+                case 'customer':
+                    pathSegment = 'customerAccounts';
+                    break;
+                case 'biller':
+                    pathSegment = 'billerAccounts';
+                    break;
+                default:
+                    console.warn("Unknown specific account type:", type);
+                    return null;
+            }
+
             return collection(db, 'users', userId, pathSegment);
         }
 
@@ -1407,27 +1528,50 @@
         function handleAccountTypeSelection(type) {
             unsubscribeAllListeners(); // Stop transaction listener if coming from main app
             selectedAccountType = type;
-            let titleText = type === 'creditCard' ? 'Credit Card Accounts' : 'Savings Bank Accounts';
+
+            // NEW: Map types to professional titles
+            const titles = {
+                'creditCard': 'Credit Card Accounts',
+                'savingsBank': 'Savings Bank Accounts',
+                'customer': 'Customer Directory (Receivables)',
+                'biller': 'Biller / Vendor List (Payables)'
+            };
 
             // Update UI for the new selection screen
-            document.getElementById('specific-ledger-title').textContent = titleText;
+            document.getElementById('specific-ledger-title').textContent = titles[type] || 'Ledger Accounts';
+
             hideElement(accountSelectionContainer);
             showElement(specificAccountSelectionContainer);
             hideElement(document.getElementById('specific-account-status')); // Clear status on screen transition
 
-            // Load list of specific accounts for this type
+            // Load list of specific accounts for this type (using the updated switch logic we built)
             setupSpecificAccountListener();
         }
 
         // Step 2: Handle selecting a specific account (e.g., HDFC Regalia)
         function handleSpecificAccountSelect(accountName) {
-            unsubscribeAllListeners(); // Stop old listeners before setting up new transaction listener
+            unsubscribeAllListeners(); // Stop old listeners
             selectedSpecificAccountName = accountName;
-            let titleText = selectedAccountType === 'creditCard' ? 'Credit Card' : 'Savings Bank';
+
+            // Map the selected account type to a friendly display title
+            const typeTitles = {
+                'creditCard': 'Credit Card',
+                'savingsBank': 'Savings Bank',
+                'customer': 'Customer',
+                'biller': 'Biller/Vendor'
+            };
+
+            const titleText = typeTitles[selectedAccountType] || 'Ledger';
 
             // Update Dashboard UI
-            document.getElementById('app-title').textContent = `${titleText}: ${accountName} Ledger`;
+            document.getElementById('app-title').textContent = `${titleText}: ${accountName}`;
             document.getElementById('current-specific-account-display').textContent = accountName;
+
+            // NEW: Update the label inside the Record Transaction form for better context
+            const recordingLabel = document.querySelector('label[for="current-specific-account-display"]');
+            if (recordingLabel) {
+                recordingLabel.textContent = `Recording for ${titleText}:`;
+            }
 
             // Ensure the dashboard form starts clean
             document.getElementById('transaction-form').reset();
@@ -1439,6 +1583,7 @@
 
             // Load and filter transactions for the specific account
             setupTransactionListener();
+
         }
 
         // Navigates from Dashboard back to Specific Account List (e.g., HDFC, Axis)
@@ -1473,73 +1618,99 @@
             showElement(accountSelectionContainer);
         }
 
-        function setupSpecificAccountListener() {
-            // Unsubscribe existing listener (crucial fix)
-            if (unsubscribeSpecificAccounts) {
-                unsubscribeSpecificAccounts();
-            }
+        // Function to rename a ledger
+        // Function to rename a ledger AND all its associated transactions
+        async function handleRenameAccount(accountId, oldName) {
+            const newName = window.prompt("Enter new name for the ledger:", oldName);
 
+            // Validation
+            if (!newName || newName.trim() === "" || newName === oldName) return;
+            const trimmedNewName = newName.trim();
+
+            try {
+                showStatus(`Renaming ${oldName} to ${trimmedNewName}...`, 'text-blue-600', document.getElementById('specific-account-status'));
+
+                const batch = writeBatch(db);
+                const accountsCollectionRef = getSpecificAccountsCollectionPath(selectedAccountType);
+                const transactionsCollectionRef = getCollectionPath(selectedAccountType);
+
+                // 1. Update the Account Document itself
+                const accountDocRef = doc(accountsCollectionRef, accountId);
+                batch.update(accountDocRef, { name: trimmedNewName });
+
+                // 2. Find and Update all Transactions linked to this account
+                const q = query(transactionsCollectionRef, where('account', '==', oldName));
+                const transactionDocs = await getDocs(q);
+
+                transactionDocs.forEach((transactionDoc) => {
+                    const tDocRef = doc(transactionsCollectionRef, transactionDoc.id);
+                    batch.update(tDocRef, { account: trimmedNewName });
+                });
+
+                // 3. Commit the batch
+                await batch.commit();
+
+                showStatus('Ledger and transactions updated successfully!', 'text-green-600', document.getElementById('specific-account-status'));
+            } catch (error) {
+                console.error("Error during batch rename:", error);
+                showStatus('Error: Could not update all records.', 'text-red-600', document.getElementById('specific-account-status'));
+            }
+        }
+
+        // Updated Listener
+        function setupSpecificAccountListener() {
+            if (unsubscribeSpecificAccounts) unsubscribeSpecificAccounts();
             if (!userId || !selectedAccountType) return;
 
             const accountsCollectionRef = getSpecificAccountsCollectionPath(selectedAccountType);
-            if (!accountsCollectionRef) return;
-
             const listEl = document.getElementById('specific-account-list');
             const noAccountsMessage = document.getElementById('no-accounts-message');
 
-            // Show a dynamic loading state immediately while data fetches
-            listEl.innerHTML = '<p class="text-gray-500">Loading accounts...</p>';
-            hideElement(noAccountsMessage);
-
-            const q = query(accountsCollectionRef);
-
-            // Set up new listener and save the unsubscribe function
-            unsubscribeSpecificAccounts = onSnapshot(q, (snapshot) => {
-                // Hide the instant loading message once data arrives
-                hideElement(document.getElementById('specific-account-status'));
-
+            unsubscribeSpecificAccounts = onSnapshot(query(accountsCollectionRef), (snapshot) => {
                 listEl.innerHTML = '';
-                const accounts = [];
-                snapshot.forEach(doc => {
-                    accounts.push({ id: doc.id, ...doc.data() });
-                });
-
-                if (accounts.length === 0) {
+                if (snapshot.empty) {
                     showElement(noAccountsMessage);
-                    listEl.innerHTML = ''; // Ensure list is truly empty if no accounts
                 } else {
                     hideElement(noAccountsMessage);
-                    accounts.forEach(account => {
+                    snapshot.forEach(docSnap => {
+                        const account = { id: docSnap.id, ...docSnap.data() };
 
                         const wrapper = document.createElement('div');
-                        wrapper.className = 'flex items-center justify-between bg-gray-100 rounded-lg p-3 hover:bg-gray-200 transition duration-150 cursor-pointer';
+                        wrapper.className = 'flex items-center justify-between bg-gray-100 rounded-lg p-3 hover:bg-gray-200 transition cursor-pointer';
 
-                        const selectBtn = document.createElement('button');
-                        selectBtn.textContent = account.name;
-                        selectBtn.className = 'flex-1 text-left text-lg font-medium text-gray-800 focus:outline-none';
-                        selectBtn.addEventListener('click', () => handleSpecificAccountSelect(account.name));
+                        const nameBtn = document.createElement('button');
+                        nameBtn.textContent = account.name;
+                        nameBtn.className = 'flex-1 text-left text-lg font-medium text-gray-800';
+                        nameBtn.onclick = () => handleSpecificAccountSelect(account.name);
 
+                        const actionArea = document.createElement('div');
+                        actionArea.className = 'flex items-center space-x-2';
+
+                        // EDIT BUTTON
+                        const editBtn = document.createElement('button');
+                        editBtn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z" /></svg>`;
+                        editBtn.className = 'text-blue-500 hover:text-blue-700 p-1';
+                        editBtn.onclick = (e) => {
+                            e.stopPropagation();
+                            handleRenameAccount(account.id, account.name);
+                        };
+
+                        // DELETE BUTTON
                         const deleteBtn = document.createElement('button');
-                        deleteBtn.innerHTML = `
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                                <path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd" />
-                            </svg>
-                        `;
-                        deleteBtn.className = 'text-red-500 hover:text-red-700 ml-4 p-1 rounded-full hover:bg-red-200 transition duration-150 flex-shrink-0';
-                        deleteBtn.setAttribute('title', `Delete ${account.name}`);
-                        deleteBtn.addEventListener('click', (e) => {
-                            e.stopPropagation(); // IMPORTANT: Stops the click from opening the ledger
+                        deleteBtn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd" /></svg>`;
+                        deleteBtn.className = 'text-red-500 hover:text-red-700 p-1';
+                        deleteBtn.onclick = (e) => {
+                            e.stopPropagation();
                             handleDeleteAccount(account.id, account.name);
-                        });
+                        };
 
-                        wrapper.appendChild(selectBtn);
-                        wrapper.appendChild(deleteBtn);
+                        actionArea.appendChild(editBtn);
+                        actionArea.appendChild(deleteBtn);
+                        wrapper.appendChild(nameBtn);
+                        wrapper.appendChild(actionArea);
                         listEl.appendChild(wrapper);
                     });
                 }
-            }, (error) => {
-                console.error("Error fetching specific accounts: ", error);
-                listEl.innerHTML = `<p class="text-red-600">Error loading accounts. Please check Firebase Rules or your network connection.</p>`;
             });
         }
 
@@ -1571,40 +1742,45 @@
         }
 
         async function handleDeleteAccount(accountId, accountName) {
-            // Custom confirmation dialog replacement
-            if (!window.confirm(`Are you sure you want to delete the account: ${accountName}? This action cannot be undone and can only proceed if the account is empty.`)) {
+            // 1. Map type to a friendly string for the confirmation/error messages
+            const typeLabel = {
+                'creditCard': 'Credit Card',
+                'savingsBank': 'Bank Account',
+                'customer': 'Customer',
+                'biller': 'Biller/Vendor'
+            }[selectedAccountType] || 'Account';
+
+            // 2. Initial Confirmation
+            if (!window.confirm(`Are you sure you want to delete the ${typeLabel}: "${accountName}"? This action cannot be undone.`)) {
                 return;
             }
 
-            if (!userId || !db || !selectedAccountType) {
-                showStatus('Application state error. Cannot proceed.', 'text-red-600', document.getElementById('specific-account-status'));
-                return;
-            }
+            const statusEl = document.getElementById('specific-account-status');
 
-            const accountsCollectionRef = getSpecificAccountsCollectionPath(selectedAccountType);
-            const transactionsCollectionRef = getCollectionPath(selectedAccountType);
-
-            if (!accountsCollectionRef || !transactionsCollectionRef) return;
-
-            // IMPORTANT: Check if there are associated transactions first
             try {
-                // We limit the query to 1 document. If it's not empty, we know transactions exist.
+                const accountsCollectionRef = getSpecificAccountsCollectionPath(selectedAccountType);
+                const transactionsCollectionRef = getCollectionPath(selectedAccountType);
+
+                if (!accountsCollectionRef || !transactionsCollectionRef) return;
+
+                // 3. The Safety Check (This correctly queries the specific sub-collection)
                 const q = query(transactionsCollectionRef, where('account', '==', accountName), limit(1));
                 const transactionSnapshot = await getDocs(q);
 
                 if (!transactionSnapshot.empty) {
-                    showStatus(`Cannot delete "${accountName}". Please **delete all associated transactions** from the main ledger first.`, 'text-red-600', document.getElementById('specific-account-status'));
+                    showStatus(`Cannot delete ${typeLabel} "${accountName}". Please delete all associated transactions first.`, 'text-red-600', statusEl);
                     return;
                 }
 
-                // Proceed with account document deletion
+                // 4. Perform the deletion
                 const docRef = doc(accountsCollectionRef, accountId);
                 await deleteDoc(docRef);
-                showStatus(`Account "${accountName}" deleted successfully.`, 'text-green-600', document.getElementById('specific-account-status'));
+
+                showStatus(`${typeLabel} "${accountName}" deleted successfully.`, 'text-green-600', statusEl);
 
             } catch (error) {
-                console.error("Error checking or deleting account:", error);
-                showStatus('Error deleting account. Check Firebase rules or console.', 'text-red-600', document.getElementById('specific-account-status'));
+                console.error("Deletion Error:", error);
+                showStatus('Error deleting record. Check network or permissions.', 'text-red-600', statusEl);
             }
         }
 
@@ -1624,6 +1800,7 @@
             const type = document.getElementById('type').value;
             const category = document.getElementById('category').value;
 
+
             if (isNaN(amount) || amount <= 0 || !date || !description) {
                 showStatus('Please fill out all transaction fields correctly.', 'text-red-600', document.getElementById('transaction-status'));
                 return;
@@ -1634,13 +1811,15 @@
 
             try {
                 const transactionData = {
-                    date: date,
-                    description: description,
+                    date: date, // Make sure 'date' is included!
+                    description: description, // Make sure 'description' is included!
                     amount: amount,
                     type: type,
                     category: category,
                     account: selectedSpecificAccountName,
                     createdAt: new Date().toISOString()
+                    // Corrected ternary logic:
+
                 };
                 await addDoc(collectionRef, transactionData);
                 document.getElementById('transaction-form').reset();
@@ -1693,11 +1872,12 @@
 
                 renderTransactions();
                 updateSummary();
-
-            }, (error) => {
-                console.error("Error listening to transactions: ", error);
-                transactionListEl.innerHTML = `<tr><td colspan="6" class="px-3 py-4 text-center text-red-600">Error loading data. Check console.</td></tr>`;
-            });
+            },
+                (error) => {
+                    console.error("Error listening to transactions: ", error);
+                    const transactionListEl = document.getElementById('transaction-list');
+                    transactionListEl.innerHTML = `<tr><td colspan="6" class="px-3 py-4 text-center text-red-600">Error loading data. Check console.</td></tr>`;
+                });
         }
 
         function renderTransactions() {
@@ -1801,7 +1981,7 @@
 
         function initFirebase() {
             // Check for mock config use
-           
+
 
             try {
                 const app = initializeApp(firebaseConfig);
@@ -1813,7 +1993,9 @@
 
                 // Auth State Listener: Controls application flow based on login status
                 onAuthStateChanged(auth, (user) => {
+                    const globalHeader = document.getElementById('global-header');
                     if (user) {
+                        if (globalHeader) globalHeader.classList.remove('hidden');
                         userId = user.uid;
                         loadUserProfile(userId);
 
@@ -1866,14 +2048,18 @@
                 console.error("Error during Firebase initialization:", error);
                 showStatus(`Database not configured. Error: ${error.message}`, 'text-red-600', authStatusEl);
             }
+            if ('serviceWorker' in navigator) {
+                navigator.serviceWorker.register('/sw.js').then(reg => console.log("SW Registered"));
+            }
         }
 
         // --- ATTACH EVENT LISTENERS (CRITICAL FIXES) ---
 
         document.addEventListener('DOMContentLoaded', () => {
 
-            // Set today's date as default in the form
-            document.getElementById('date').value = new Date().toISOString().substring(0, 10);
+            // 1. Set today's date as default in the form
+            const dateInput = document.getElementById('date');
+            if (dateInput) dateInput.value = new Date().toISOString().substring(0, 10);
 
             const stateSelectSignup = document.getElementById('state');
             const districtSelectSignup = document.getElementById('district');
@@ -1881,23 +2067,21 @@
             const districtSelectEdit = document.getElementById('edit-district');
             const typeSelect = document.getElementById('type');
             const categorySelect = document.getElementById('category');
-            const incomeGroup = document.getElementById('income-options');
-            const expenseGroup = document.getElementById('expense-options');
+
             // Initialize State/District dropdowns on load
             populateStates(stateSelectSignup, districtSelectSignup);
 
             // Add cascade listeners for signup form
             stateSelectSignup.addEventListener('change', () => populateDistricts(stateSelectSignup, districtSelectSignup));
 
-            // Add cascade listeners for edit form (listeners are also set in populateProfileEditForm for initial load)
+            // Add cascade listeners for edit form
             stateSelectEdit.addEventListener('change', () => populateDistricts(stateSelectEdit, districtSelectEdit));
 
             // Add Pincode validation listeners for all relevant fields
             setupPincodeValidation();
 
-
             // ----------------------------------------------------
-            // CORE EVENT LISTENERS (FIXED/ADDED)
+            // CORE EVENT LISTENERS
             // ----------------------------------------------------
 
             // AUTHENTICATION LISTENERS
@@ -1909,7 +2093,7 @@
             document.getElementById('signup-step-1-form').addEventListener('submit', handleSignupNext);
             checkVerificationBtn.addEventListener('click', handleCheckVerification);
             otpBackBtn.addEventListener('click', handleSignupBack);
-            backStepBtn3.addEventListener('click', handleSignupBack); // Back button on Step 3
+            backStepBtn3.addEventListener('click', handleSignupBack);
             document.getElementById('signup-step-3-form').addEventListener('submit', handleFinalSignup);
 
             // PROFILE PHOTO LISTENERS
@@ -1928,6 +2112,22 @@
                     profilePhotoFile = null;
                 }
             });
+            // Search Ledgers (Accounts)
+            const ledgerSearchInput = document.getElementById('search-ledgers');
+            ledgerSearchInput.addEventListener('input', (e) => {
+                const searchTerm = e.target.value.toLowerCase();
+                const accountItems = document.querySelectorAll('#specific-account-list > div');
+
+                accountItems.forEach(item => {
+                    const accountName = item.querySelector('button').textContent.toLowerCase();
+                    if (accountName.includes(searchTerm)) {
+                        item.classList.remove('hidden');
+                    } else {
+                        item.classList.add('hidden');
+                    }
+                });
+            });
+
             document.getElementById('edit-profile-photo').addEventListener('change', (e) => {
                 const file = e.target.files[0];
                 const editStatusEl = document.getElementById('edit-photo-status');
@@ -1945,7 +2145,6 @@
                     hideElement(editStatusEl);
                 }
             });
-
 
             // APP NAVIGATION & ACCOUNT SELECTION LISTENERS
             document.querySelectorAll('.select-account-type-btn').forEach(button => {
@@ -1975,29 +2174,85 @@
             document.getElementById('filter-form').addEventListener('submit', handleFilterTransactions);
             document.getElementById('clear-filter-btn').addEventListener('click', handleClearFilter);
 
+            // --- NEW: SEARCH LISTENER ---
+            const searchInput = document.getElementById('search-transactions');
+            if (searchInput) {
+                searchInput.addEventListener('input', (e) => {
+                    const searchTerm = e.target.value.toLowerCase();
+                    const filtered = allTransactions.filter(t =>
+                        t.description.toLowerCase().includes(searchTerm) ||
+                        t.category.toLowerCase().includes(searchTerm)
+                    );
+                    renderFilteredTransactions(filtered);
+                });
+            }
+
             // ----------------------------------------------------
 
-            // Initialize Firebase after DOM is fully loaded
+            // Initialize Firebase
             initFirebase();
+
+            // CATEGORY TOGGLE LOGIC
             function updateCategoryOptions() {
+                const incomeGroup = document.getElementById('income-options');
+                const expenseGroup = document.getElementById('expense-options');
+
+                if (!typeSelect || !categorySelect) return;
+
                 if (typeSelect.value === 'credit') {
-                    incomeGroup.hidden = false;    // Show Income
-                    expenseGroup.hidden = true;    // Hide Expenses
-                    categorySelect.value = "Salary"; // Default to first income
+                    if (incomeGroup) incomeGroup.hidden = false;
+                    if (expenseGroup) expenseGroup.hidden = true;
+                    categorySelect.value = "Salary";
                 } else {
-                    incomeGroup.hidden = true;     // Hide Income
-                    expenseGroup.hidden = false;   // Show Expenses
-                    categorySelect.value = "Other";  // Default to an expense
+                    if (incomeGroup) incomeGroup.hidden = true;
+                    if (expenseGroup) expenseGroup.hidden = false;
+                    categorySelect.value = "Other";
                 }
             }
 
-            // Initial run to set the state correctly on page load
             updateCategoryOptions();
-
-            // Listen for changes on the Type dropdown
             typeSelect.addEventListener('change', updateCategoryOptions);
-            // --------------------------------
         });
+
+        // --- HELPER FUNCTION (Place this at the very bottom of your script) ---
+        function renderFilteredTransactions(dataToRender) {
+            const transactionListEl = document.getElementById('transaction-list');
+            transactionListEl.innerHTML = '';
+
+            if (dataToRender.length === 0) {
+                transactionListEl.innerHTML = `<tr><td colspan="6" class="px-3 py-4 text-center text-gray-500">No matching transactions found.</td></tr>`;
+                return;
+            }
+
+            dataToRender.forEach(t => {
+                const row = document.createElement('tr');
+                const amountClass = t.type === 'debit' ? 'debit font-medium' : 'credit font-medium';
+                const sign = t.type === 'debit' ? '-' : '+';
+
+                row.innerHTML = `
+            <td class="px-3 py-3 whitespace-nowrap text-sm text-gray-800">${t.date}</td>
+            <td class="px-3 py-3 whitespace-nowrap text-sm text-gray-500">${t.account}</td>
+            <td class="px-3 py-3 whitespace-nowrap text-sm text-gray-800">${t.description}</td>
+            <td class="px-3 py-3 whitespace-nowrap text-xs text-gray-500">${t.category}</td>
+            <td class="px-3 py-3 whitespace-nowrap text-sm text-right ${amountClass}">
+                ${sign} ₹${t.amount.toFixed(2)}
+            </td>
+            <td class="px-3 py-3 whitespace-nowrap text-center text-sm font-medium">
+                <button data-id="${t.id}" class="delete-transaction-btn text-red-500 hover:text-red-700">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mx-auto" viewBox="0 0 20 20" fill="currentColor">
+                        <path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd" />
+                    </svg>
+                </button>
+            </td>
+        `;
+                transactionListEl.appendChild(row);
+            });
+
+            // Critical: Re-attach delete listeners for search results
+            document.querySelectorAll('.delete-transaction-btn').forEach(button => {
+                button.addEventListener('click', handleDeleteTransaction);
+            });
+        }
 
     </script>
 
@@ -2053,7 +2308,7 @@
                 doc.setFont("helvetica", "bold");
                 doc.text(`Net Balance: ${netBalance}`, 140, 62);
                 doc.setFont("helvetica", "normal");
-                doc.setTextColor(0, 0, 0); 
+                doc.setTextColor(0, 0, 0);
 
                 // 4. Transaction Table
                 doc.autoTable({
