@@ -1209,7 +1209,17 @@
         }
 
 
-        // --- ADDRESS LOGIC ---
+        // --- DATE FORMATTER UTILITY ---
+function formatDateDisplay(dateStr) {
+    if (!dateStr) return 'N/A';
+    const date = new Date(dateStr);
+    const options = { day: '2-digit', month: 'short', year: 'numeric' };
+    
+    // Creates "04 Apr 2026"
+    let formatted = date.toLocaleDateString('en-GB', options);
+    // Adds the comma to make it "04 Apr, 2026"
+    return formatted.replace(/ (\d{4})/, ', $1'); 
+}
 
         // Function to enforce 6-digit Pincode (numeric only)
         function setupPincodeValidation() {
@@ -1895,7 +1905,7 @@
                 const sign = t.type === 'debit' ? '-' : '+';
 
                 row.innerHTML = `
-                    <td class="px-3 py-3 whitespace-nowrap text-sm text-gray-800">${t.date}</td>
+                    <td class="px-3 py-3 whitespace-nowrap text-sm text-gray-800">${formatDateDisplay(t.date)}</td>
                     <td class="px-3 py-3 whitespace-nowrap text-sm text-gray-500">${t.account}</td>
                     <td class="px-3 py-3 whitespace-nowrap text-sm text-gray-800">${t.description}</td>
                     <td class="px-3 py-3 whitespace-nowrap text-xs text-gray-500">${t.category}</td>
@@ -2178,13 +2188,16 @@
             const searchInput = document.getElementById('search-transactions');
             if (searchInput) {
                 searchInput.addEventListener('input', (e) => {
-                    const searchTerm = e.target.value.toLowerCase();
-                    const filtered = allTransactions.filter(t =>
-                        t.description.toLowerCase().includes(searchTerm) ||
-                        t.category.toLowerCase().includes(searchTerm)
-                    );
-                    renderFilteredTransactions(filtered);
-                });
+    const searchTerm = e.target.value.toLowerCase();
+    const filtered = allTransactions.filter(t => {
+        const displayDate = formatDateDisplay(t.date).toLowerCase();
+        return t.description.toLowerCase().includes(searchTerm) ||
+               t.category.toLowerCase().includes(searchTerm) ||
+               t.date.includes(searchTerm) || // Matches "2026-04"
+               displayDate.includes(searchTerm); // Matches "Apr"
+    });
+    renderFilteredTransactions(filtered);
+});
             }
 
             // ----------------------------------------------------
@@ -2230,7 +2243,7 @@
                 const sign = t.type === 'debit' ? '-' : '+';
 
                 row.innerHTML = `
-            <td class="px-3 py-3 whitespace-nowrap text-sm text-gray-800">${t.date}</td>
+            <td class="px-3 py-3 whitespace-nowrap text-sm text-gray-800">${formatDateDisplay(t.date)}</td>
             <td class="px-3 py-3 whitespace-nowrap text-sm text-gray-500">${t.account}</td>
             <td class="px-3 py-3 whitespace-nowrap text-sm text-gray-800">${t.description}</td>
             <td class="px-3 py-3 whitespace-nowrap text-xs text-gray-500">${t.category}</td>
