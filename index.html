@@ -8,6 +8,10 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.25/jspdf.plugin.autotable.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
     <style>
         body {
@@ -72,6 +76,12 @@
             padding-bottom: 20px;
         }
 
+        #otp-input {
+            letter-spacing: 0.5em;
+            text-indent: 0.5em;
+            /* Centers the letters better */
+        }
+
         /* Custom styles for step transition animation */
         .fade-in {
             opacity: 1;
@@ -129,6 +139,34 @@
 </head>
 
 <body class="min-h-screen p-4 md:p-8">
+    <header class="flex items-center justify-between p-4 bg-white shadow-md sticky top-0 z-50 mb-6">
+        <div class="flex items-center space-x-3">
+            <div class="relative">
+                <img id="profile-photo-display" src="https://placehold.co/40x40/3b82f6/ffffff?text=U"
+                    class="profile-pic" alt="Profile Photo">
+
+                <div id="profile-menu"
+                    class="absolute left-0 top-full mt-2 w-40 bg-white rounded-lg shadow-lg py-1 hidden z-10 border border-gray-200">
+                    <button id="edit-profile-menu-btn"
+                        class="w-full text-left px-4 py-2 text-sm text-blue-600 hover:bg-blue-50 rounded-md">
+                        Edit Profile
+                    </button>
+                    <button id="header-logout-btn"
+                        class="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 rounded-md">
+                        Logout
+                    </button>
+                </div>
+            </div>
+
+            <div class="flex flex-col">
+                <span id="user-display-name" class="text-xs text-gray-700 font-medium leading-tight">Loading...</span>
+                <h1 class="text-sm font-bold text-gray-800" id="app-title">My Financial Ledger</h1>
+            </div>
+        </div>
+
+
+    </header>
+
 
     <div id="auth-container" class="auth-container">
 
@@ -138,9 +176,11 @@
 
             <div id="signin-view" class="transition-transform-opacity fade-in space-y-4">
                 <form id="signin-form" class="space-y-4">
-                    <input type="email" id="signin-email" placeholder="Email" required
+                    <input type="email" id="signin-email" placeholder="Email" required autocomplete="off"
                         class="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-3 border focus:ring-blue-500 focus:border-blue-500">
+
                     <input type="password" id="signin-password" placeholder="Password" required
+                        autocomplete="new-password"
                         class="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-3 border focus:ring-blue-500 focus:border-blue-500">
 
                     <button type="submit" id="signin-submit-btn"
@@ -209,30 +249,22 @@
             </div>
 
             <div id="signup-step-2-view" class="transition-transform-opacity fade-out-right space-y-4 hidden">
-                <div class="space-y-4">
-                    <p class="text-lg font-semibold text-gray-700 text-center" id="verification-message">
-                        Please check your inbox. A verification link has been sent to the email address provided.
-                    </p>
-                    <p class="text-sm text-gray-500 mt-1 mb-6 text-center">
-                        **Action Required:** Click the link in the email to verify your address, then click the button
-                        below to proceed to Step 3.
-                    </p>
+                <p id="verification-message" class="text-lg font-semibold text-gray-700 text-center">
+                    Enter the code sent to your email
+                </p>
 
-                    <button type="button" id="check-verification-btn"
-                        class="w-full py-3 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition duration-150">
-                        I Have Verified My Email (Continue)
-                    </button>
+                <input type="text" id="otp-input" placeholder="000000" maxlength="6" inputmode="numeric"
+                    class="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-4 border focus:ring-blue-500 focus:border-blue-500 text-center text-3xl font-bold tracking-[0.5em] bg-gray-50">
 
-                    <p class="text-xs text-red-600 mt-4 text-center border-t pt-2">
-                        **NOTE:** Since real emails cannot be sent from this environment, clicking the button above
-                        **forces** the verification status to `true` so you can complete the flow.
-                    </p>
+                <button type="button" id="verify-otp-btn"
+                    class="w-full py-3 bg-green-600 hover:bg-green-700 text-white rounded-md mt-4 transition font-bold shadow-md">
+                    Verify OTP & Continue
+                </button>
 
-                    <button type="button" id="otp-back-btn"
-                        class="w-full mt-4 py-2 px-4 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-gray-200 hover:bg-gray-300 transition duration-150">
-                        ← Back (Change Details)
-                    </button>
-                </div>
+                <button type="button" id="otp-back-btn"
+                    class="w-full py-2 text-gray-500 hover:text-gray-700 text-sm font-medium transition">
+                    ← Back to Step 1
+                </button>
             </div>
 
 
@@ -306,14 +338,87 @@
             <h1 class="text-3xl font-extrabold text-gray-800 mb-2" id="specific-ledger-title"></h1>
             <p class="text-sm text-gray-500 mb-6">Select an existing account or add a new one.</p>
 
-            <form id="add-specific-account-form"
-                class="flex flex-col sm:flex-row gap-2 mb-4 items-center justify-center">
-                <input type="text" id="new-account-name" placeholder="New Account Name (e.g., HDFC Regalia)" required
-                    class="flex-grow rounded-md border-gray-300 shadow-sm p-2 border focus:ring-indigo-500 focus:border-indigo-500 w-full sm:w-auto">
-                <button type="submit"
-                    class="w-full sm:w-auto py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 transition duration-150">
-                    Add Account
-                </button>
+            <form id="add-specific-account-form" class="flex flex-col gap-4 mb-4 items-center justify-center">
+                <div class="flex flex-col sm:flex-row gap-2 w-full">
+                    <input type="text" id="new-account-name" placeholder="New Account Name..." required
+                        class="flex-grow rounded-md border-gray-300 shadow-sm p-2 border focus:ring-indigo-500 focus:border-indigo-500 w-full sm:w-auto">
+                    <input type="tel" id="new-account-phone" placeholder="WhatsApp Number (e.g. 919876543210)"
+                        class="flex-grow rounded-md border-gray-300 shadow-sm p-2 border focus:ring-indigo-500 w-full"
+                        pattern="[0-9]{10,12}" title="Please enter 10 digits or include country code (e.g., 91)">
+
+                    <div class="flex items-center gap-1">
+                        <button type="submit" id="main-account-submit-btn"
+                            class="w-full sm:w-auto py-2 px-6 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 transition duration-150">
+                            Add Account
+                        </button>
+
+                        <button type="button" id="cancel-selection-x"
+                            class="hidden p-2 bg-red-50 text-red-500 rounded-md border border-red-200 hover:bg-red-100 transition"
+                            title="Cancel Selection">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20"
+                                fill="currentColor">
+                                <path fill-rule="evenodd"
+                                    d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"
+                                    clip-rule="evenodd" />
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+
+
+
+                <div id="ledger-reminder-ui"
+                    class="hidden w-full p-4 bg-indigo-50 border border-indigo-100 rounded-lg text-left">
+                    <div class="flex items-center space-x-2 mb-2">
+                        <span class="p-1 bg-indigo-200 rounded-full">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3 text-indigo-700" fill="none"
+                                viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                        </span>
+                        <p class="text-xs font-bold text-indigo-700 uppercase tracking-wide">
+                            Reminder for:
+                            <button type="button" id="reminder-target-display"
+                                class="text-indigo-900 underline hover:text-blue-600 transition ml-1">
+                                Search Ledger
+                            </button>
+                            <span class="text-[10px] text-indigo-400 font-normal ml-1">(Click to change)</span>
+                        </p>
+                    </div>
+                    <div id="reminder-search-container"
+                        class="hidden mt-2 p-3 bg-white border border-indigo-200 rounded-lg shadow-lg">
+                        <div class="flex items-center gap-2 mb-2">
+                            <input type="text" id="quick-search-input" placeholder="Search saved name..."
+                                class="flex-grow p-2 text-sm border border-gray-300 rounded focus:ring-indigo-500 focus:border-indigo-500">
+
+                            <button type="button" id="close-quick-search"
+                                class="px-2 py-2 text-gray-400 hover:text-red-500 transition">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20"
+                                    fill="currentColor">
+                                    <path fill-rule="evenodd"
+                                        d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"
+                                        clip-rule="evenodd" />
+                                </svg>
+                            </button>
+                        </div>
+                        <div id="quick-search-results" class="max-h-40 overflow-y-auto space-y-1">
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-[10px] text-gray-500 uppercase font-semibold">Reminder Date</label>
+                            <input type="date" id="ledger-reminder-date"
+                                class="mt-1 block w-full rounded-md border-gray-300 p-2 text-sm border focus:ring-indigo-500">
+                        </div>
+                        <div>
+                            <label class="block text-[10px] text-gray-500 uppercase font-semibold">Time</label>
+                            <input type="time" id="ledger-reminder-time"
+                                class="mt-1 block w-full rounded-md border-gray-300 p-2 text-sm border focus:ring-indigo-500">
+                        </div>
+                    </div>
+                </div>
             </form>
 
             <div class="mb-4 relative">
@@ -381,6 +486,14 @@
                     class="w-full py-3 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition ease-in-out duration-150">
                     Update Profile
                 </button>
+                <button type="button" id="share-summary-wa"
+                    class="w-full py-3 px-4 border border-green-200 rounded-md shadow-sm text-sm font-medium text-green-700 bg-green-50 hover:bg-green-100 transition flex items-center justify-center gap-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="currentColor" viewBox="0 0 24 24">
+                        <path
+                            d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946.003-6.556 5.338-11.891 11.893-11.891 3.181.001 6.167 1.24 8.413 3.488 2.246 2.248 3.484 5.232 3.483 8.413-.003 6.557-5.338 11.892-11.893 11.892-1.997-.001-3.951-.5-5.688-1.448l-6.308 1.654zm6.233-3.762c1.608.955 3.186 1.432 4.907 1.433 5.311 0 9.634-4.323 9.637-9.636.002-5.314-4.322-9.638-9.636-9.638-5.313 0-9.638 4.325-9.64 9.638-.001 1.832.51 3.513 1.479 5.067l-1.006 3.673 3.76-1.001z" />
+                    </svg>
+                    Share My Ledger Summary
+                </button>
                 <button type="button" id="cancel-edit-btn"
                     class="w-full py-3 px-4 mt-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 transition ease-in-out duration-150">
                     Cancel
@@ -399,31 +512,8 @@
 
 
     <div id="app-container" class="max-w-6xl mx-auto hidden">
-        <header class="flex items-center justify-between p-4 bg-white shadow-md sticky top-0 z-50 mb-6">
-            <div class="flex items-center space-x-3">
-                <div class="relative">
-                    <img id="profile-photo-display" src="https://placehold.co/40x40/3b82f6/ffffff?text=U"
-                        class="profile-pic" alt="Profile Photo">
 
-                    <div id="profile-menu"
-                        class="absolute left-0 top-full mt-2 w-40 bg-white rounded-lg shadow-lg py-1 hidden z-10 border border-gray-200">
-                        <button id="edit-profile-menu-btn"
-                            class="w-full text-left px-4 py-2 text-sm text-blue-600 hover:bg-blue-50 rounded-md">
-                            Edit Profile
-                        </button>
-                        <button id="header-logout-btn"
-                            class="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 rounded-md">
-                            Logout
-                        </button>
-                    </div>
-                </div>
-
-                <div class="flex flex-col">
-                    <span id="user-display-name"
-                        class="text-xs text-gray-700 font-medium leading-tight">Loading...</span>
-                    <h1 class="text-sm font-bold text-gray-800" id="app-title">My Financial Ledger</h1>
-                </div>
-            </div>
+        <div class="flex items-center space-x-3">
 
             <div class="flex space-x-2">
                 <button id="change-account-btn"
@@ -435,13 +525,16 @@
                     Type
                 </button>
             </div>
-        </header>
+        </div>
+
+
 
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
 
             <div class="lg:col-span-1 p-6 bg-white rounded-xl card h-fit">
                 <h2 class2="2xl font-semibold mb-6 text-gray-700" id="form-header">Record Transaction</h2>
                 <form id="transaction-form" class="space-y-4">
+
                     <div class="p-3 bg-gray-50 rounded-md border border-gray-200">
                         <label class="block text-sm font-medium text-gray-500">Currently Recording To:</label>
                         <p id="current-specific-account-display" class="font-semibold text-gray-800 text-lg mt-1">N/A
@@ -470,6 +563,7 @@
                         <label for="type" class="block text-sm font-medium text-gray-700">Type</label>
                         <select id="type" required
                             class="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2 border focus:ring-blue-500 focus:border-blue-500 bg-white">
+
                             <option value="credit">Credit (Income)</option>
                             <option value="debit">Debit (Expense)</option>
                         </select>
@@ -489,7 +583,9 @@
                                 <option value="Trading">Trading Profits</option>
                                 <option value="Freelance">Freelance</option>
                                 <option value="Gift/Refund">Gift / Refund</option>
+                                <option value="Gift/Refund">Gift / Refund</option>
                                 <option value="Other">Other Income</option>
+
                             </optgroup>
                             <optgroup label="Expenses (Debit)">
                                 <option value="Food">Food & Groceries</option>
@@ -504,15 +600,89 @@
                         </select>
                     </div>
 
-
-
                     <button type="submit" id="auth-submit-btn"
                         class="w-full py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition ease-in-out duration-150">
                         Record Transaction
                     </button>
+                    <div class="mb-4">
+                        <label
+                            class="group flex items-center justify-center w-full py-4 px-2 border-2 border-dashed border-blue-300 rounded-xl bg-blue-50 hover:bg-blue-100 transition-all cursor-pointer">
+                            <input type="file" id="ocr-upload" accept="image/*" capture="environment" class="hidden">
+                            <div class="flex flex-col items-center">
+                                <svg xmlns="http://www.w3.org/2000/svg"
+                                    class="h-8 w-8 text-blue-500 mb-1 group-hover:scale-110 transition-transform"
+                                    fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
+                                </svg>
+                                <span class="text-xs font-bold text-blue-600 uppercase tracking-wider">Scan Bill /
+                                    Receipt</span>
+                            </div>
+                        </label>
+                        <div id="ocr-loading" class="hidden mt-2">
+                            <div class="flex items-center justify-center gap-2">
+                                <div class="w-3 h-3 bg-blue-600 rounded-full animate-bounce"></div>
+                                <span class="text-[10px] font-bold text-blue-600 uppercase">AI Reading Receipt...</span>
+                            </div>
+                        </div>
+                    </div>
                     <div id="transaction-status" class="text-sm pt-2 text-center hidden"></div>
                 </form>
             </div>
+            <div id="ocr-modal"
+                class="fixed inset-0 z-[10000] hidden flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+                <div
+                    class="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in duration-300">
+                    <div class="bg-blue-600 p-4 text-white">
+                        <h3 class="text-lg font-bold flex items-center gap-2">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24"
+                                stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                            Verify Scanned Data
+                        </h3>
+                    </div>
+                    <div class="p-6 space-y-4">
+                        <div>
+                            <label class="block text-xs font-bold text-gray-400 uppercase">Description / Vendor</label>
+                            <input type="text" id="modal-desc"
+                                class="w-full mt-1 p-2 border rounded-md focus:ring-2 focus:ring-blue-500 outline-none">
+                        </div>
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-xs font-bold text-gray-400 uppercase">Amount (₹)</label>
+                                <input type="number" id="modal-amount"
+                                    class="w-full mt-1 p-2 border rounded-md focus:ring-2 focus:ring-blue-500 outline-none">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold text-gray-400 uppercase">Date</label>
+                                <input type="date" id="modal-date"
+                                    class="w-full mt-1 p-2 border rounded-md focus:ring-2 focus:ring-blue-500 outline-none">
+                            </div>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-gray-400 uppercase">Category</label>
+                            <select id="modal-category" class="w-full mt-1 p-2 border rounded-md outline-none">
+                                <option value="Food">Food & Groceries</option>
+                                <option value="Shopping">Shopping</option>
+                                <option value="Transportation">Transportation</option>
+                                <option value="Other" selected>Other</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="flex border-t">
+                        <button id="modal-cancel"
+                            class="flex-1 py-4 text-gray-500 font-bold hover:bg-gray-50 transition">Cancel</button>
+                        <button id="modal-record"
+                            class="flex-1 py-4 bg-blue-600 text-white font-bold hover:bg-blue-700 transition">Record
+                            Now</button>
+                    </div>
+                </div>
+            </div>
+
 
             <div class="lg:col-span-2 space-y-6">
 
@@ -528,6 +698,16 @@
                     <div class="p-4 bg-white rounded-xl card text-center">
                         <p class="text-sm text-gray-500">Net Balance</p>
                         <p id="net-balance" class="2xl font-bold mt-1 text-gray-800">₹0.00</p>
+                    </div>
+                </div>
+
+                <div class="p-6 bg-white rounded-xl card mb-6">
+                    <div class="flex justify-between items-center mb-4">
+                        <h2 class="text-xl font-semibold text-gray-700">Spending Analysis</h2>
+                        <span class="text-xs text-gray-400">Expenses by Category</span>
+                    </div>
+                    <div class="relative" style="height: 250px;">
+                        <canvas id="expenseChart"></canvas>
                     </div>
                 </div>
 
@@ -632,12 +812,37 @@
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, onAuthStateChanged, signOut, sendPasswordResetEmail, deleteUser, sendSignInLinkToEmail, isSignInWithEmailLink, signInWithEmailLink } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         // --- FIRESTORE IMPORTS ---
-        import { getFirestore, collection, addDoc, onSnapshot, query, orderBy, doc, deleteDoc, where, getDocs, limit, setDoc, getDoc, writeBatch } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { getFirestore, collection, addDoc, onSnapshot, query, orderBy, doc, deleteDoc, where, getDocs, limit, setDoc, getDoc, writeBatch, updateDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { getMessaging, getToken, onMessage } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-messaging.js";
         import { setLogLevel } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { getFunctions, httpsCallable } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-functions.js";
         window.onerror = function (msg, url, linenumber) {
             alert('Error message: ' + msg + '\nURL: ' + url + '\nLine Number: ' + linenumber);
             return true;
         };
+        function generateWhatsAppLink(t) {
+            const myName = (userProfile && userProfile.name) ? userProfile.name : "User";
+
+            // Check if phone was saved in the transaction, if not fallback to global variable
+            const phone = t.phone || window.currentAccountPhone || "";
+
+            const message = `Hi! Friendly reminder from ${myName}: ${t.description} for ${formatCurrency(t.amount)}.`;
+            const encodedMsg = encodeURIComponent(message);
+
+            // --- THE CRITICAL FIX ---
+            // Remove everything except numbers (removes +, spaces, dashes)
+            let cleanPhone = phone.replace(/\D/g, '');
+
+            // If it's 10 digits (Indian format), WhatsApp REQUIRES the '91' prefix
+            if (cleanPhone.length === 10) {
+                cleanPhone = "91" + cleanPhone;
+            }
+
+            // Use api.whatsapp.com for best MacBook Desktop App compatibility
+            return cleanPhone
+                ? `https://api.whatsapp.com/send?phone=${cleanPhone}&text=${encodedMsg}`
+                : `https://api.whatsapp.com/send?text=${encodedMsg}`;
+        }
         // setLogLevel('debug'); // Uncomment for debugging
 
         // ---------------------------------------------------------------------------------
@@ -653,9 +858,11 @@
             measurementId: "G-2BR60LS3QM"
         };
 
-        let db, auth, userId;
+        let userId = null;
+        let ledgerInterval = null;
+        let auth, db, messaging;
         let isSigningUp = false;
-        let isEmailVerified = false; // Tracks email verification status
+        let isEmailVerified = false;
         let allTransactions = [];
         let selectedAccountType = null;
         let selectedSpecificAccountName = null;
@@ -663,10 +870,179 @@
         let unsubscribeTransactions = null;
         let userProfile = {};
         let profilePhotoFile = null;
-        let editProfilePhotoFile = null; // Correctly defined
+        let currentAccountPhone = "";
+        window.currentAccountPhone = "";
+        let editProfilePhotoFile = null;
+        let myChart = null; // Holds the chart instance so we can refresh it
+        let editingAccountId = null; // Stores the ID of the account being edited// Correctly defined
         let tempSignupData = {}; // Stores Step 1 data temporarily
+        const app = initializeApp(firebaseConfig);
+        db = getFirestore(app);
+        auth = getAuth(app);
+        messaging = getMessaging(app);
+
+        const functions = getFunctions(app); // Note: It's safer to pass 'app' here
+        const sendOTPFunction = httpsCallable(functions, 'sendOTP');
 
         const MAX_FILE_SIZE_BYTES = 1024 * 1024; // 1 MB
+
+        // 1. Close the function properly with a }
+        function triggerVoiceAlert(text) {
+            if (!window.speechSynthesis) return;
+
+            const message = text || "Attention! You have a new payment reminder.";
+            const utterance = new SpeechSynthesisUtterance(message);
+            utterance.lang = 'en-US';
+
+            const audio = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3');
+
+            audio.play().then(() => {
+                window.speechSynthesis.cancel();
+                window.speechSynthesis.resume();
+                window.speechSynthesis.speak(utterance);
+            }).catch(err => {
+                console.log("Sound blocked. Click the page once.");
+            });
+        } // <--- THIS IS THE MISSING CLOSING BRACE
+
+        // 2. Now the listener can start correctly
+        onMessage(messaging, (payload) => {
+            console.log("Foreground message received:", payload);
+            triggerVoiceAlert(payload.notification.body);
+            alert(`${payload.notification.title}: ${payload.notification.body}`);
+        });
+        // Foreground listener
+        onMessage(messaging, (payload) => {
+            triggerVoiceAlert(payload.notification.body);
+            alert(`${payload.notification.title}: ${payload.notification.body}`);
+        });
+
+        // Background listener (Service Worker communication)
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.addEventListener('message', (event) => {
+                if (event.data && event.data.type === 'TRIGGER_VOICE') {
+                    console.log("Background message received from SW:", event.data.text);
+
+                    // We use the same function name you have, but ensure it's 
+                    // the version that chains the beep and the voice.
+                    triggerVoiceAlert(event.data.text);
+                }
+            });
+        }
+        // FCM Token Setup (Paste your long VAPID key here)
+
+
+        function startLedgerReminderCheck(ledgers) {
+            if (ledgerInterval) clearInterval(ledgerInterval);
+            console.log("🔔 Reminder Watcher Active for", ledgers.length, "accounts");
+
+            ledgerInterval = setInterval(() => {
+                const now = new Date();
+
+                // 1. Get current date in YYYY-MM-DD format (India Time)
+                const currentDate = now.toLocaleDateString('en-CA', {
+                    timeZone: 'Asia/Kolkata'
+                });
+
+                // 2. Get current time in HH:mm format (India Time)
+                const currentTime = now.toLocaleTimeString('en-GB', {
+                    timeZone: 'Asia/Kolkata',
+                    hour: '2-digit',
+                    minute: '2-digit',
+                    hour12: false
+                });
+
+                console.log(`System Check (IST): ${currentDate} at ${currentTime}`);
+
+                ledgers.forEach(async (ledger) => {
+                    // Log for debugging
+                    console.log(`Comparing: [${currentDate} ${currentTime}] with [${ledger.reminderDate} ${ledger.reminderTime}]`);
+
+                    if (ledger.reminderDate === currentDate && ledger.reminderTime === currentTime && !ledger.notified) {
+
+                        triggerVoiceAlert(`Attention! Payment reminder for ${ledger.name}`);
+
+                        // Mark as notified so it doesn't repeat every 15 seconds
+                        ledger.notified = true;
+
+                        // Update Firestore
+                        try {
+                            const col = selectedAccountType + 'Accounts';
+                            await updateDoc(doc(db, 'users', userId, col, ledger.id), { notified: true });
+                        } catch (err) {
+                            console.error("DB Update Error:", err);
+                        }
+                    }
+                });
+            }, 15000); // Checks every 15 seconds
+        }
+        async function setupNotifications() {
+            try {
+                const permission = await Notification.requestPermission();
+                if (permission === 'granted') {
+                    const token = await getToken(messaging, {
+                        vapidKey: "BFeqqhNCOdgm2wGzLwux-MCwk9QoNdkB4bC5K00cpzJvw9bnyF8QCT9gKNwL6exa3T95G8lHkciKSqoajCccgYM"
+                    });
+                    if (token) console.log("FCM Token:", token);
+                }
+            } catch (err) { console.log('Token error:', err); }
+        }
+        function startApp() {
+            onAuthStateChanged(auth, (user) => {
+                const globalHeader = document.querySelector('header');
+
+                if (user) {
+                    userId = user.uid;
+                    loadUserProfile(userId);
+
+                    // Show Header and Account Selection
+                    if (globalHeader) globalHeader.classList.remove('hidden');
+                    hideElement(authContainer);
+                    showElement(accountSelectionContainer);
+                } else {
+                    userId = null;
+
+                    // --- CRITICAL: HIDE EVERYTHING EXCEPT LOGIN ---
+                    if (globalHeader) globalHeader.classList.add('hidden');
+                    const status = document.getElementById('auth-status');
+                    if (status) {
+                        status.textContent = "";
+                        status.classList.add('hidden');
+                    }
+
+                    // Hide all app-related screens
+                    hideElement(accountSelectionContainer);
+                    hideElement(specificAccountSelectionContainer);
+                    hideElement(appContainer);
+                    hideElement(profileEditContainer);
+                    hideElement(document.getElementById('ocr-modal'));
+
+                    // Show only the Auth screen
+                    showElement(authContainer);
+
+                    // Optional: Clear the browser history so they can't "back" into the app
+                    window.history.pushState(null, "", window.location.href);
+                }
+            });
+        }
+        // Add this to the bottom of your script
+        // Look for this at the bottom of your code and replace it
+        document.addEventListener('click', () => {
+            // This 'primes' the audio AND the speech engine simultaneously
+            const unlock = new SpeechSynthesisUtterance("");
+            window.speechSynthesis.speak(unlock);
+
+            const silentAudio = new Audio();
+            silentAudio.play().catch(() => { });
+
+            console.log("Audio & Voice Engine Primed");
+        }, { once: true });
+
+        startApp();
+        checkEmailVerificationOnLoad();
+
+
+
 
         // --- DOM ELEMENTS ---
         const authContainer = document.getElementById('auth-container');
@@ -685,9 +1061,11 @@
         const mobileNumberInput = document.getElementById('mobile-number');
 
         // Sign-up step 2 (Email Verification) elements
+        // --- STEP 2 DOM ELEMENTS (UPDATED FOR OTP) ---
         const signupStep2View = document.getElementById('signup-step-2-view');
-        const checkVerificationBtn = document.getElementById('check-verification-btn');
         const verificationMessage = document.getElementById('verification-message');
+        const otpInput = document.getElementById('otp-input'); // Added this
+        const verifyOtpBtn = document.getElementById('verify-otp-btn'); // Renamed from check-verification-btn
         const otpBackBtn = document.getElementById('otp-back-btn');
 
         // Sign-up step 3 (Security) elements
@@ -695,6 +1073,8 @@
         const signupStep3Form = document.getElementById('signup-step-3-form');
         const signupSubmitBtn = document.getElementById('signup-submit-btn');
         const backStepBtn3 = document.getElementById('back-step-btn-3');
+
+
 
         // --- INDIAN STATE/DISTRICT DATA (COMPREHENSIVE) ---
         const indianStatesAndDistricts = {
@@ -851,9 +1231,37 @@
         }
 
         function handleLogout() {
-            unsubscribeAllListeners(); // Clear all listeners on logout
-            signOut(auth);
-            // State cleanup is handled by onAuthStateChanged listener
+            // 1. Stop all real-time listeners
+            unsubscribeAllListeners();
+
+            // 2. Clear all navigation variables
+            selectedAccountType = null;
+            selectedSpecificAccountName = null;
+            allTransactions = [];
+            const status = document.getElementById('auth-status');
+            if (status) {
+                status.textContent = "";       // Clear the "Authenticating..." text
+                status.classList.add('hidden'); // Hide the red/gray box
+            }
+
+            // 3. WIPE THE LOGIN FIELDS (Remove prefilled data)
+            const signinForm = document.getElementById('signin-form');
+            if (signinForm) {
+                signinForm.reset(); // This clears all text inputs in the form
+            }
+
+            // Explicitly clear specific fields just in case
+            document.getElementById('signin-email').value = "";
+            document.getElementById('signin-password').value = "";
+
+            // 4. Perform Firebase Sign Out
+            signOut(auth).then(() => {
+                console.log("Logged out successfully");
+            }).catch((error) => {
+                console.error("Logout Error:", error);
+            });
+            localStorage.clear();
+            tempSignupData = {};
         }
 
         // --- AUTHENTICATION HANDLERS ---
@@ -898,27 +1306,36 @@
 
         async function handleSignIn(e) {
             e.preventDefault();
+            alert("Button Clicked!");
+
             const email = document.getElementById('signin-email').value;
             const password = document.getElementById('signin-password').value;
             const signInBtn = document.getElementById('signin-submit-btn');
 
-            if (!auth || !email || !password) return;
+            // Show an alert if Firebase isn't ready
+            if (!auth) {
+                alert("Firebase is still initializing. Please wait a moment.");
+                return;
+            }
+
+            if (!email || !password) {
+                showStatus('Enter email and password', 'text-red-600', authStatusEl);
+                return;
+            }
 
             signInBtn.disabled = true;
-            hideElement(authStatusEl);
-            showStatus('Signing in...', 'text-gray-500', authStatusEl);
+            // We use document.getElementById directly here to be 100% safe
+            const status = document.getElementById('auth-status');
+            status.classList.remove('hidden');
+            status.textContent = "Authenticating...";
 
             try {
                 await signInWithEmailAndPassword(auth, email, password);
-                // Success is handled by onAuthStateChanged listener
-                showStatus('Sign in successful! Redirecting...', 'text-green-600', authStatusEl);
+                // The onAuthStateChanged listener will handle the UI switch automatically
             } catch (error) {
                 console.error("Sign In Error:", error);
-                let errorMessage = 'Sign-in failed. Please check your email and password.';
-                if (error.code === 'auth/wrong-password' || error.code === 'auth/user-not-found') {
-                    errorMessage = 'Invalid credentials or user not found.';
-                }
-                showStatus(errorMessage, 'text-red-600', authStatusEl);
+                status.textContent = "Error: " + error.message;
+                status.classList.add('text-red-600');
             } finally {
                 signInBtn.disabled = false;
             }
@@ -927,51 +1344,54 @@
         async function handlePasswordReset() {
             const email = document.getElementById('signin-email').value;
             if (!email) {
-                showStatus('Please enter your email address in the Sign In field above.', 'text-red-600', authStatusEl);
+                showStatus('Please enter your email in the Sign In field.', 'text-red-600', authStatusEl);
                 return;
             }
 
             try {
-                await sendPasswordResetEmail(auth, email);
-                showStatus(`Password reset link sent to ${email}. Check your inbox.`, 'text-green-600', authStatusEl);
+                await sendPasswordResetEmail(auth, email); // Standard Firebase reset
+                showStatus('Password reset link sent to your email.', 'text-green-600', authStatusEl);
             } catch (error) {
-                console.error("Reset Error:", error);
-                showStatus(`Failed to send reset email. Error: ${error.message}`, 'text-red-600', authStatusEl);
+                showStatus(error.message, 'text-red-600', authStatusEl);
             }
         }
 
         // Function to send the actual Email Verification Link
         async function sendVerificationLink(email) {
-            // Configuration for the link redirection
-            const actionCodeSettings = {
-                // IMPORTANT: CHANGE THIS TO YOUR LIVE HOSTING URL
-                url: `${window.location.origin}/personal_payment_tracker.html`,
-                handleCodeInApp: true,
-            };
-
             try {
-                showStatus('Sending verification link...', 'text-gray-500', authStatusEl);
-                // The actual Firebase API call to send the email link
-                await sendSignInLinkToEmail(auth, email, actionCodeSettings);
+                showStatus('Generating OTP...', 'text-blue-500', authStatusEl);
 
-                // Save email to local storage to verify upon return
-                localStorage.setItem('emailForSignIn', email);
+                // This calls exports.sendOTP in your functions/index.js
+                const result = await sendOTPFunction({ email: email });
 
-                showStatus(`Verification link sent to ${email}. Check your inbox!`, 'text-green-600', authStatusEl);
+                if (result.data && result.data.success) {
+                    showStatus('OTP sent to your email!', 'text-green-600', authStatusEl);
 
+                    // Move UI to the OTP input screen
+                    const msg = document.getElementById('verification-message');
+                    msg.innerHTML = `Enter the 6-digit code sent to <b class="text-blue-600">${email}</b>`;
+
+                    return true;
+                } else {
+                    showStatus('Backend error. Check Firebase logs.', 'text-red-600', authStatusEl);
+                    return false;
+                }
             } catch (error) {
-                console.error("Error sending verification email:", error);
-                showStatus(`Error sending verification email: ${error.message}`, 'text-red-600', authStatusEl);
+                console.error("Cloud Function Error:", error);
+                showStatus('Failed to connect to backend.', 'text-red-600', authStatusEl);
+                return false;
             }
         }
-
 
         // UPDATED: Step 1 Validation and Transition to Step 2 (Email Link)
         async function handleSignupNext(e) {
             e.preventDefault();
-            hideElement(authStatusEl); // Clear previous errors
+            hideElement(authStatusEl);
 
-            // 1. Get data from Step 1 form (Now includes Email/Mobile)
+            const nextBtn = document.getElementById('next-step-btn');
+            if (nextBtn.disabled) return;
+
+            // 1. Get Form Data
             const name = document.getElementById('user-name').value.trim();
             const email = signupEmailStep1.value.trim();
             const mobile = mobileNumberInput.value.trim();
@@ -981,69 +1401,82 @@
             const district = document.getElementById('district').value.trim();
             const pincode = document.getElementById('pincode').value.trim();
             const state = document.getElementById('state').value.trim();
-            const photoFile = profilePhotoFile;
 
             // 2. Validation
             if (!name || !addr1 || !subDist || !district || !pincode || !state || !email) {
-                showStatus('Step 1 Failed: Please fill in all mandatory fields (including Email).', 'text-red-600', authStatusEl);
-                return;
-            }
-            if (!/^\d{6}$/.test(pincode)) {
-                showStatus('Step 1 Failed: Pincode must be exactly 6 digits.', 'text-red-600', authStatusEl);
-                return;
-            }
-            if (mobile && !/^\d{10}$/.test(mobile)) {
-                showStatus('Step 1 Failed: Mobile Number must be 10 digits or left empty.', 'text-red-600', authStatusEl);
-                return;
-            }
-            if (photoFile && photoFile.size > MAX_FILE_SIZE_BYTES) {
-                showStatus('Step 1 Failed: Profile photo exceeds the 1MB limit.', 'text-red-600', authStatusEl);
+                showStatus('Please fill in all mandatory fields.', 'text-red-600', authStatusEl);
                 return;
             }
 
-            // 3. Save data temporarily and convert photo
-            let photoBase64 = null;
-            if (photoFile) {
-                showStatus('Processing image...', 'text-gray-500', authStatusEl);
-                photoBase64 = await fileToBase64(photoFile);
+            // 3. UI State: Disable button immediately
+            nextBtn.disabled = true;
+            nextBtn.textContent = "Sending OTP...";
+
+            try {
+                let photoBase64 = null;
+                if (profilePhotoFile) {
+                    showStatus('Processing image...', 'text-gray-500', authStatusEl);
+                    photoBase64 = await fileToBase64(profilePhotoFile);
+                }
+
+                tempSignupData = {
+                    name, email, mobile: mobile || null, address1: addr1, address2: addr2,
+                    subDistrict: subDist, district, pincode, state, photoBase64
+                };
+
+                // 4. Send OTP via Cloud Function
+                const emailSent = await sendVerificationLink(email);
+
+                if (emailSent) {
+                    handleNavigateToStep2();
+                } else {
+                    // Manual reset if Firebase returns false
+                    nextBtn.disabled = false;
+                    nextBtn.textContent = "Next: Verify Contact →";
+                    showStatus('Failed to send OTP. Check your connection.', 'text-red-600', authStatusEl);
+                }
+            } catch (err) {
+                console.error("Signup Error:", err);
+                showStatus('An error occurred. Please try again.', 'text-red-600', authStatusEl);
+
+                // Reset UI so user can try again
+                nextBtn.disabled = false;
+                nextBtn.textContent = "Next: Verify Contact →";
             }
+        }
 
-            tempSignupData = {
-                name, email, mobile: mobile || null, address1: addr1, address2: addr2, subDistrict: subDist,
-                district, pincode, state, photoBase64
-            };
-
-            // 4. Send Verification Link (using the real API call)
-            await sendVerificationLink(email);
-
-            // 5. Transition to Step 2 (Verification)
+        // Keep this function outside of handleSignupNext so it can be reused
+        function handleNavigateToStep2() {
             authTitle.textContent = 'Sign Up (Step 2: Verification)';
 
-            // Apply fade-out class immediately to Step 1
+            // Slide out Step 1
             signupStep1View.classList.add('fade-out-left');
             signupStep1View.classList.remove('fade-in');
 
             setTimeout(() => {
-                // Hide Step 1 and prepare Step 2 for fade-in
                 hideElement(signupStep1View);
-                signupStep2View.classList.remove('hidden', 'fade-out-left');
-
-                // Trigger fade-in
-                setTimeout(() => {
-                    signupStep2View.classList.add('fade-in');
-                    signupStep2View.classList.remove('fade-out-right'); // Reset for back navigation
-                }, 10);
-
-            }, 400); // Duration of CSS transition
+                signupStep2View.classList.remove('hidden');
+                signupStep2View.classList.add('fade-in');
+                signupStep2View.classList.remove('fade-out-right');
+            }, 400);
         }
 
         // Handler for checking verification status (Step 2 button click)
         async function handleCheckVerification() {
-            // SIMULATION: Since we cannot handle email redirects, we force verification here.
-            isEmailVerified = true;
-            showStatus('Email verification simulated! Proceeding...', 'text-green-600', authStatusEl);
+            // Refresh the user's data from the Firebase server
+            if (auth.currentUser) {
+                await auth.currentUser.reload();
 
-            handleNavigateToStep3();
+                if (auth.currentUser.emailVerified) {
+                    isEmailVerified = true;
+                    showStatus('Verified! Proceeding...', 'text-green-600', authStatusEl);
+                    handleNavigateToStep3();
+                } else {
+                    showStatus('Email not verified yet. Please check your inbox.', 'text-red-600', authStatusEl);
+                }
+            } else {
+                showStatus('Please click the link in your email first.', 'text-red-600', authStatusEl);
+            }
         }
 
         // Handles transition from Step 2 (Verification) to Step 3 (Security)
@@ -1067,6 +1500,53 @@
 
                 hideElement(authStatusEl);
             }, 400); // Duration of CSS transition
+        }
+        function updateExpenseChart() {
+            const ctx = document.getElementById('expenseChart').getContext('2d');
+
+            // 1. Data Prep: Filter only 'debit' (expenses) and group by category
+            const categoryTotals = {};
+            allTransactions.filter(t => t.type === 'debit').forEach(t => {
+                categoryTotals[t.category] = (categoryTotals[t.category] || 0) + t.amount;
+            });
+
+            const labels = Object.keys(categoryTotals);
+            const data = Object.values(categoryTotals);
+
+            // 2. Clear old chart if it exists to prevent overlap
+            if (myChart) {
+                myChart.destroy();
+            }
+
+            // 3. Create the Doughnut Chart
+            myChart = new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        data: data,
+                        backgroundColor: [
+                            '#4f46e5', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#06b6d4'
+                        ],
+                        borderWidth: 2,
+                        borderColor: '#ffffff'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'right',
+                            labels: {
+                                boxWidth: 12,
+                                font: { size: 11 }
+                            }
+                        }
+                    },
+                    cutout: '70%' // Makes it a thin, modern ring
+                }
+            });
         }
 
 
@@ -1177,49 +1657,46 @@
 
         // Function to check for and complete the email verification process on page load.
         async function checkEmailVerificationOnLoad() {
+            // Check if the URL contains the Firebase verification code
             if (isSignInWithEmailLink(auth, window.location.href)) {
                 let email = localStorage.getItem('emailForSignIn');
 
+                // If they opened the link in a different browser/device
                 if (!email) {
                     email = window.prompt('Please provide your email for confirmation:');
                 }
 
-                if (!email) {
-                    showStatus('Verification failed. Email address not provided.', 'text-red-600', authStatusEl);
-                    return;
-                }
-
                 try {
-                    showStatus('Completing verification...', 'text-gray-500', authStatusEl);
+                    showStatus('Verifying your identity...', 'text-blue-500', authStatusEl);
 
-                    // Sign the user in and verify the email address
+                    // This ACTUALLY verifies the email with Firebase
                     await signInWithEmailLink(auth, email, window.location.href);
 
-                    // Clear local storage and update verification status
-                    localStorage.removeItem('emailForSignIn');
+                    // Now that they are verified, set our local flag
                     isEmailVerified = true;
+                    localStorage.removeItem('emailForSignIn');
 
-                    showStatus('Verification successful! You can now proceed with sign-up.', 'text-green-600', authStatusEl);
+                    // --- THE REDIRECT ---
+                    // Hide Step 1/2 and jump straight to Step 3 (Password setup)
+                    isSigningUp = true; // Ensure the app knows we are in signup mode
+                    hideElement(signinView);
+                    hideElement(signupStep1View);
+                    hideElement(signupStep2View);
+
+                    showElement(signupStep3View);
+                    authTitle.textContent = 'Sign Up (Step 3: Security)';
+
+                    showStatus('Email Verified! Please set your password.', 'text-green-600', authStatusEl);
 
                 } catch (error) {
-                    console.error("Error during email link sign-in:", error);
-                    showStatus(`Verification Failed: ${error.message}`, 'text-red-600', authStatusEl);
+                    console.error("Verification Error:", error);
+                    showStatus('Verification link expired or invalid.', 'text-red-600', authStatusEl);
                 }
             }
         }
 
 
-        // --- DATE FORMATTER UTILITY ---
-function formatDateDisplay(dateStr) {
-    if (!dateStr) return 'N/A';
-    const date = new Date(dateStr);
-    const options = { day: '2-digit', month: 'short', year: 'numeric' };
-    
-    // Creates "04 Apr 2026"
-    let formatted = date.toLocaleDateString('en-GB', options);
-    // Adds the comma to make it "04 Apr, 2026"
-    return formatted.replace(/ (\d{4})/, ', $1'); 
-}
+        // --- ADDRESS LOGIC ---
 
         // Function to enforce 6-digit Pincode (numeric only)
         function setupPincodeValidation() {
@@ -1266,6 +1743,8 @@ function formatDateDisplay(dateStr) {
             populateDistricts(stateSelectElement, districtSelectElement, selectedDistrict);
         }
 
+
+
         // Function to populate District dropdowns based on selected State
         function populateDistricts(stateSelectElement, districtSelectElement, selectedDistrict = null) {
             const state = stateSelectElement.value;
@@ -1309,16 +1788,29 @@ function formatDateDisplay(dateStr) {
             document.getElementById('pincode').value = tempSignupData.pincode || '';
 
             // Restore contact data
-            signupEmailStep1.value = tempSignupData.email || '';
-            mobileNumberInput.value = tempSignupData.mobile || '';
+            if (signupEmailStep1) signupEmailStep1.value = tempSignupData.email || '';
+            if (mobileNumberInput) mobileNumberInput.value = tempSignupData.mobile || '';
 
             // Handle State/District population
             const stateSelect = document.getElementById('state');
             const districtSelect = document.getElementById('district');
 
-            // Populate states and set selected state, which cascades to districts
-            populateStates(stateSelect, districtSelect, tempSignupData.state, tempSignupData.district);
+            if (stateSelect && tempSignupData.state) {
+                stateSelect.value = tempSignupData.state;
+
+                // Manually trigger the district population
+                populateDistricts(stateSelect, districtSelect, tempSignupData.district);
+
+                // If the district was saved, set it after a tiny delay to ensure the DOM updated
+                setTimeout(() => {
+                    if (tempSignupData.district) {
+                        districtSelect.value = tempSignupData.district;
+                    }
+                }, 50);
+            }
         }
+
+
 
         // --- PROFILE FUNCTIONS ---
 
@@ -1331,20 +1823,27 @@ function formatDateDisplay(dateStr) {
                 const docSnap = await getDoc(docRef);
                 if (docSnap.exists()) {
                     userProfile = docSnap.data();
-                } else {
-                    userProfile = { name: 'User' }; // Default name if profile is missing
+
+                    // 1. Update the Header Name with the actual name from the DB
+                    const nameSpan = document.getElementById('user-display-name');
+                    if (nameSpan) {
+                        nameSpan.textContent = userProfile.name || 'User';
+                    }
+
+                    // 2. Update the Profile Photo
+                    const profileImg = document.getElementById('profile-photo-display');
+                    if (profileImg) {
+                        if (userProfile.photoBase64) {
+                            profileImg.src = userProfile.photoBase64;
+                        } else {
+                            // Fallback to initial if no photo
+                            const firstLetter = (userProfile.name || 'U').charAt(0).toUpperCase();
+                            profileImg.src = `https://placehold.co/40x40/3b82f6/ffffff?text=${firstLetter}`;
+                        }
+                    }
                 }
             } catch (error) {
-                console.error("Error loading user profile:", error);
-                userProfile = { name: 'Error' };
-            }
-
-            // Update the Dashboard Header display
-            document.getElementById('user-display-name').textContent = userProfile.name || 'User';
-            if (userProfile.photoBase64) {
-                document.getElementById('profile-photo-display').src = userProfile.photoBase64;
-            } else {
-                document.getElementById('profile-photo-display').src = `https://placehold.co/40x40/3b82f6/ffffff?text=${(userProfile.name || 'U').charAt(0)}`;
+                console.error("Error loading profile name:", error);
             }
         }
 
@@ -1375,19 +1874,36 @@ function formatDateDisplay(dateStr) {
         }
 
         function handleNavigateToProfileEdit() {
+            history.pushState({ page: 'profile' }, "");
             unsubscribeAllListeners(); // Stop dashboard listeners
+
+            // 1. Hide every possible main container
+            hideElement(authContainer);
+            hideElement(accountSelectionContainer);
+            hideElement(specificAccountSelectionContainer);
             hideElement(appContainer);
+
+            // 2. Hide the profile menu dropdown
+            hideElement(document.getElementById('profile-menu'));
+
+            // 3. Show the Profile Edit screen
             showElement(profileEditContainer);
-            populateProfileEditForm(); // Load current data into the form
-            hideElement(document.getElementById('profile-menu')); // Hide menu after clicking edit
+
+            // 4. Load the data into the form
+            populateProfileEditForm();
         }
 
         function handleNavigateBackFromProfileEdit() {
+            // 1. Hide the profile editor
             hideElement(profileEditContainer);
-            // Re-show the app container, assuming the user was on the dashboard
-            showElement(appContainer);
-            // Note: Dashboard listeners are re-established when re-selecting account, or persist if app was open.
-            if (selectedAccountType) setupTransactionListener(); // Restart listener if account was selected
+
+            // 2. Go back to the initial ledger selection screen
+            selectedAccountType = null;
+            selectedSpecificAccountName = null;
+            showElement(accountSelectionContainer);
+
+            // 3. Ensure the header is still visible
+            showElement(document.getElementById('global-header'));
         }
 
         async function handleProfileUpdate(e) {
@@ -1536,8 +2052,15 @@ function formatDateDisplay(dateStr) {
 
         // Step 1: Handle selecting the general ledger type
         function handleAccountTypeSelection(type) {
+            history.pushState({ page: 'specific' }, "");
             unsubscribeAllListeners(); // Stop transaction listener if coming from main app
             selectedAccountType = type;
+            const ledgerReminderUI = document.getElementById('ledger-reminder-ui');
+            if (type === 'customer' || type === 'biller') {
+                ledgerReminderUI.classList.remove('hidden');
+            } else {
+                ledgerReminderUI.classList.add('hidden');
+            }
 
             // NEW: Map types to professional titles
             const titles = {
@@ -1559,11 +2082,17 @@ function formatDateDisplay(dateStr) {
         }
 
         // Step 2: Handle selecting a specific account (e.g., HDFC Regalia)
-        function handleSpecificAccountSelect(accountName) {
+        // Add accountPhone to the parameters
+        function handleSpecificAccountSelect(accountName, accountPhone) {
+            history.pushState({ page: 'dashboard' }, "");
             unsubscribeAllListeners(); // Stop old listeners
+
             selectedSpecificAccountName = accountName;
 
-            // Map the selected account type to a friendly display title
+            // Store this globally so handleAddTransaction can access it
+            window.currentAccountPhone = accountPhone || "";
+
+            // 1. Map the selected account type to a friendly display title
             const typeTitles = {
                 'creditCard': 'Credit Card',
                 'savingsBank': 'Savings Bank',
@@ -1573,27 +2102,34 @@ function formatDateDisplay(dateStr) {
 
             const titleText = typeTitles[selectedAccountType] || 'Ledger';
 
-            // Update Dashboard UI
-            document.getElementById('app-title').textContent = `${titleText}: ${accountName}`;
-            document.getElementById('current-specific-account-display').textContent = accountName;
+            // 2. Update and SHOW the Dynamic Title in the Header
+            const appTitle = document.getElementById('app-title');
+            if (appTitle) {
+                appTitle.textContent = `${titleText}: ${accountName}`;
+                appTitle.classList.remove('hidden');
+            }
 
-            // NEW: Update the label inside the Record Transaction form for better context
+            // 3. Update the Transaction Form Display
+            const specificAccountDisplay = document.getElementById('current-specific-account-display');
+            if (specificAccountDisplay) {
+                specificAccountDisplay.textContent = accountName;
+            }
+
             const recordingLabel = document.querySelector('label[for="current-specific-account-display"]');
             if (recordingLabel) {
                 recordingLabel.textContent = `Recording for ${titleText}:`;
             }
 
-            // Ensure the dashboard form starts clean
+            // 4. Clean up the form for a fresh start
             document.getElementById('transaction-form').reset();
             document.getElementById('date').value = new Date().toISOString().substring(0, 10);
 
-            // Show Dashboard
+            // 5. Navigate to Dashboard
             hideElement(specificAccountSelectionContainer);
             showElement(appContainer);
 
-            // Load and filter transactions for the specific account
+            // 6. Start listening for transactions
             setupTransactionListener();
-
         }
 
         // Navigates from Dashboard back to Specific Account List (e.g., HDFC, Axis)
@@ -1620,9 +2156,17 @@ function formatDateDisplay(dateStr) {
 
         // Navigates from Dashboard back to Ledger Type Selection (Credit Card vs Savings)
         function handleNavigateToTypeSelection() {
-            unsubscribeAllListeners(); // Stop all listeners
-            selectedAccountType = null; // Clear type state
-            selectedSpecificAccountName = null; // Clear specific account state
+            unsubscribeAllListeners();
+            selectedAccountType = null;
+            selectedSpecificAccountName = null;
+
+            // Reset the title to default and hide the ledger specific part
+            const appTitle = document.getElementById('app-title');
+            if (appTitle) {
+                appTitle.textContent = "My Financial Ledger";
+                // Optional: appTitle.classList.add('hidden'); if you want it gone entirely
+            }
+
             hideElement(appContainer);
             hideElement(specificAccountSelectionContainer);
             showElement(accountSelectionContainer);
@@ -1630,44 +2174,33 @@ function formatDateDisplay(dateStr) {
 
         // Function to rename a ledger
         // Function to rename a ledger AND all its associated transactions
-        async function handleRenameAccount(accountId, oldName) {
-            const newName = window.prompt("Enter new name for the ledger:", oldName);
+        async function handleRenameAccount(accountId, oldName, oldDate, oldTime, oldPhone) {
+            // 1. Tell the app which ID we are editing
+            editingAccountId = accountId;
 
-            // Validation
-            if (!newName || newName.trim() === "" || newName === oldName) return;
-            const trimmedNewName = newName.trim();
-
-            try {
-                showStatus(`Renaming ${oldName} to ${trimmedNewName}...`, 'text-blue-600', document.getElementById('specific-account-status'));
-
-                const batch = writeBatch(db);
-                const accountsCollectionRef = getSpecificAccountsCollectionPath(selectedAccountType);
-                const transactionsCollectionRef = getCollectionPath(selectedAccountType);
-
-                // 1. Update the Account Document itself
-                const accountDocRef = doc(accountsCollectionRef, accountId);
-                batch.update(accountDocRef, { name: trimmedNewName });
-
-                // 2. Find and Update all Transactions linked to this account
-                const q = query(transactionsCollectionRef, where('account', '==', oldName));
-                const transactionDocs = await getDocs(q);
-
-                transactionDocs.forEach((transactionDoc) => {
-                    const tDocRef = doc(transactionsCollectionRef, transactionDoc.id);
-                    batch.update(tDocRef, { account: trimmedNewName });
-                });
-
-                // 3. Commit the batch
-                await batch.commit();
-
-                showStatus('Ledger and transactions updated successfully!', 'text-green-600', document.getElementById('specific-account-status'));
-            } catch (error) {
-                console.error("Error during batch rename:", error);
-                showStatus('Error: Could not update all records.', 'text-red-600', document.getElementById('specific-account-status'));
+            // 2. Fill the inputs
+            document.getElementById('new-account-name').value = oldName;
+            document.getElementById('ledger-reminder-date').value = oldDate || '';
+            document.getElementById('ledger-reminder-time').value = oldTime || '';
+            const phoneInput = document.getElementById('new-account-phone');
+            if (phoneInput) {
+                phoneInput.value = oldPhone || '';
             }
+            document.getElementById('reminder-target-display').textContent = oldName;
+
+            // 3. Change the Button UI to "Update" mode
+            const submitBtn = document.querySelector('#add-specific-account-form button[type="submit"]');
+            submitBtn.textContent = "Update Ledger";
+            submitBtn.classList.replace('bg-indigo-600', 'bg-green-600');
+            document.getElementById('cancel-selection-x').classList.remove('hidden');
+
+            document.getElementById('new-account-name').focus();
         }
 
         // Updated Listener
+        // 1. Move this OUTSIDE the function to the top of your script
+
+
         function setupSpecificAccountListener() {
             if (unsubscribeSpecificAccounts) unsubscribeSpecificAccounts();
             if (!userId || !selectedAccountType) return;
@@ -1678,23 +2211,85 @@ function formatDateDisplay(dateStr) {
 
             unsubscribeSpecificAccounts = onSnapshot(query(accountsCollectionRef), (snapshot) => {
                 listEl.innerHTML = '';
+                const allLedgersData = [];
+
                 if (snapshot.empty) {
                     showElement(noAccountsMessage);
                 } else {
                     hideElement(noAccountsMessage);
                     snapshot.forEach(docSnap => {
                         const account = { id: docSnap.id, ...docSnap.data() };
+                        allLedgersData.push(account);
 
                         const wrapper = document.createElement('div');
                         wrapper.className = 'flex items-center justify-between bg-gray-100 rounded-lg p-3 hover:bg-gray-200 transition cursor-pointer';
 
                         const nameBtn = document.createElement('button');
-                        nameBtn.textContent = account.name;
+                        nameBtn.textContent = account.name + (account.phone ? " (📞)" : " ");
                         nameBtn.className = 'flex-1 text-left text-lg font-medium text-gray-800';
-                        nameBtn.onclick = () => handleSpecificAccountSelect(account.name);
+                        nameBtn.onclick = () => handleSpecificAccountSelect(account.name, account.phone);
 
                         const actionArea = document.createElement('div');
                         actionArea.className = 'flex items-center space-x-2';
+                        // Inside setupSpecificAccountListener -> snapshot.forEach(docSnap => { ... })
+
+                        // Create the WhatsApp Button
+                        // Inside setupSpecificAccountListener -> snapshot.forEach(docSnap => { ... })
+
+                        const waBtn = document.createElement('button');
+                        waBtn.className = 'ml-2 text-green-500 hover:text-green-600 p-1 transition-transform hover:scale-110';
+                        waBtn.innerHTML = `
+    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="currentColor" viewBox="0 0 24 24">
+        <path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946.003-6.556 5.338-11.891 11.893-11.891 3.181.001 6.167 1.24 8.413 3.488 2.246 2.248 3.484 5.232 3.483 8.413-.003 6.557-5.338 11.892-11.893 11.892-1.997-.001-3.951-.5-5.688-1.448l-6.308 1.654zm6.233-3.762c1.608.955 3.186 1.432 4.907 1.433 5.311 0 9.634-4.323 9.637-9.636.002-5.314-4.322-9.638-9.636-9.638-5.313 0-9.638 4.325-9.64 9.638-.001 1.832.51 3.513 1.479 5.067l-1.006 3.673 3.76-1.001z"/>
+    </svg>`;
+
+                        waBtn.onclick = async (e) => {
+                            e.stopPropagation(); // Prevents navigating into the ledger details
+
+                            // 1. Calculate the current balance for this specific person
+                            const transactionsPath = getCollectionPath(selectedAccountType);
+                            const q = query(transactionsPath, where('account', '==', account.name));
+                            const tSnapshot = await getDocs(q);
+
+                            let total = 0;
+                            tSnapshot.forEach(tDoc => {
+                                const tData = tDoc.data();
+                                if (tData.type === 'credit') total += tData.amount;
+                                else total -= tData.amount;
+                            });
+
+                            // 2. Prepare the personalized message
+                            const balanceStatus = total >= 0 ? "Credit Balance" : "Pending Dues";
+                            const absoluteAmount = Math.abs(total).toFixed(2);
+                            const message = `Hi ${account.name}! This is a reminder from ${userProfile.name}. Your current ${balanceStatus} is ₹${absoluteAmount}.`;
+
+                            // 3. CLEAN THE PHONE NUMBER (Critical for direct chat)
+                            // This removes any spaces, dashes, or brackets
+                            let rawPhone = account.phone || "";
+                            let cleanPhone = rawPhone.replace(/\D/g, '');
+
+                            // Auto-add '91' if it's a standard 10-digit Indian number
+                            if (cleanPhone.length === 10) {
+                                cleanPhone = "91" + cleanPhone;
+                            } else if (cleanPhone.length === 11 && cleanPhone.startsWith('0')) {
+                                cleanPhone = "91" + cleanPhone.substring(1);
+                            }
+
+                            // 4. Open WhatsApp directly to that specific number
+                            // NOTE: Use api.whatsapp.com for better MacBook Desktop App redirection
+                            let waUrl = "";
+                            if (cleanPhone && cleanPhone.length >= 11) {
+                                waUrl = `https://api.whatsapp.com/send?phone=${cleanPhone}&text=${encodeURIComponent(message)}`;
+                            } else {
+                                // Fallback if no number is found
+                                waUrl = `https://api.whatsapp.com/send?text=${encodeURIComponent(message)}`;
+                            }
+
+                            window.open(waUrl, '_blank');
+                        };
+
+                        // Add it to your list UI
+                        actionArea.prepend(waBtn);
 
                         // EDIT BUTTON
                         const editBtn = document.createElement('button');
@@ -1702,7 +2297,8 @@ function formatDateDisplay(dateStr) {
                         editBtn.className = 'text-blue-500 hover:text-blue-700 p-1';
                         editBtn.onclick = (e) => {
                             e.stopPropagation();
-                            handleRenameAccount(account.id, account.name);
+                            // Pass existing data to the edit form
+                            handleRenameAccount(account.id, account.name, account.reminderDate, account.reminderTime, account.phone);
                         };
 
                         // DELETE BUTTON
@@ -1721,12 +2317,35 @@ function formatDateDisplay(dateStr) {
                         listEl.appendChild(wrapper);
                     });
                 }
+                // Start the background check with the latest data from Firestore
+                startLedgerReminderCheck(allLedgersData);
             });
         }
 
+
+
         async function handleAddSpecificAccount(e) {
             e.preventDefault();
+
+            // 1. Get values from the form
             const newAccountName = document.getElementById('new-account-name').value.trim();
+
+            const phoneInput = document.getElementById('new-account-phone');
+            // Clean the phone number before saving to Firestore
+            let phoneNumber = phoneInput ? phoneInput.value.replace(/\D/g, '') : null;
+            // If the user entered 10 digits, save it as 91XXXXXXXXXX
+            if (phoneNumber && phoneNumber.length === 10) {
+                phoneNumber = "91" + phoneNumber;
+            }
+
+            // Check if reminder elements exist before grabbing values
+            const dateEl = document.getElementById('ledger-reminder-date');
+            const timeEl = document.getElementById('ledger-reminder-time');
+
+            const rDate = dateEl ? dateEl.value : null;
+            const rTime = timeEl ? timeEl.value : null;
+
+
 
             if (!newAccountName || !userId || !selectedAccountType) return;
 
@@ -1734,20 +2353,30 @@ function formatDateDisplay(dateStr) {
             if (!accountsCollectionRef) return;
 
             try {
-                // Add account to Firestore
+                // 2. Add account to Firestore
                 await addDoc(accountsCollectionRef, {
                     name: newAccountName,
-                    createdAt: new Date().toISOString()
+                    phone: phoneNumber,
+                    createdAt: new Date().toISOString(), // <--- ADDED MISSING COMMA HERE
+                    reminderDate: rDate || null,
+                    reminderTime: rTime || null,
+                    notified: false
                 });
 
+                // 3. Clear the form
                 document.getElementById('new-account-name').value = '';
+                if (dateEl) dateEl.value = '';
+                if (timeEl) timeEl.value = '';
 
-                // Navigate directly to the main dashboard for the newly created account
+                // Navigate to the main dashboard for the new account
                 handleSpecificAccountSelect(newAccountName);
 
             } catch (error) {
                 console.error("Error adding specific account: ", error);
-                showStatus('Could not add account. See console.', 'text-red-600', document.getElementById('specific-account-status'));
+                const statusEl = document.getElementById('specific-account-status');
+                if (statusEl) {
+                    showStatus('Could not add account. See console.', 'text-red-600', statusEl);
+                }
             }
         }
 
@@ -1810,7 +2439,6 @@ function formatDateDisplay(dateStr) {
             const type = document.getElementById('type').value;
             const category = document.getElementById('category').value;
 
-
             if (isNaN(amount) || amount <= 0 || !date || !description) {
                 showStatus('Please fill out all transaction fields correctly.', 'text-red-600', document.getElementById('transaction-status'));
                 return;
@@ -1821,25 +2449,38 @@ function formatDateDisplay(dateStr) {
 
             try {
                 const transactionData = {
-                    date: date, // Make sure 'date' is included!
-                    description: description, // Make sure 'description' is included!
+                    date: date,
+                    description: description,
                     amount: amount,
                     type: type,
                     category: category,
                     account: selectedSpecificAccountName,
+                    // NEW: Link the phone number to this specific transaction
+                    // currentAccountPhone must be set when you select the account
+                    phone: window.currentAccountPhone || "",
                     createdAt: new Date().toISOString()
-                    // Corrected ternary logic:
-
                 };
+
                 await addDoc(collectionRef, transactionData);
+
+                // Success Feedback & Reset
                 document.getElementById('transaction-form').reset();
-                document.getElementById('date').value = new Date().toISOString().substring(0, 10); // Reset date to today
+                document.getElementById('date').value = new Date().toISOString().substring(0, 10);
+
+                // Bonus: Trigger that pulse animation we discussed!
+                const balanceEl = document.getElementById('net-balance');
+                if (balanceEl) {
+                    balanceEl.classList.add('animate-balance');
+                    setTimeout(() => balanceEl.classList.remove('animate-balance'), 600);
+                }
+
                 showStatus('Transaction recorded successfully!', 'text-green-600', document.getElementById('transaction-status'));
             } catch (error) {
                 console.error("Error recording transaction:", error);
                 showStatus('Error recording transaction.', 'text-red-600', document.getElementById('transaction-status'));
             }
         }
+
 
         function setupTransactionListener() {
             if (unsubscribeTransactions) {
@@ -1882,20 +2523,22 @@ function formatDateDisplay(dateStr) {
 
                 renderTransactions();
                 updateSummary();
-            },
-                (error) => {
-                    console.error("Error listening to transactions: ", error);
-                    const transactionListEl = document.getElementById('transaction-list');
-                    transactionListEl.innerHTML = `<tr><td colspan="6" class="px-3 py-4 text-center text-red-600">Error loading data. Check console.</td></tr>`;
-                });
+                updateExpenseChart();
+
+            }, (error) => {
+                console.error("Error listening to transactions: ", error);
+                transactionListEl.innerHTML = `<tr><td colspan="6" class="px-3 py-4 text-center text-red-600">Error loading data. Check console.</td></tr>`;
+            });
         }
+
+
 
         function renderTransactions() {
             const transactionListEl = document.getElementById('transaction-list');
             transactionListEl.innerHTML = ''; // Clear existing list
 
             if (allTransactions.length === 0) {
-                transactionListEl.innerHTML = `<tr><td colspan="6" class="px-3 py-4 text-center text-gray-500">No transactions recorded for this account.</td></tr>`;
+                transactionListEl.innerHTML = `<tr><td colspan="6" class="px-3 py-4 text-center text-gray-500">No transactions recorded.</td></tr>`;
                 return;
             }
 
@@ -1904,26 +2547,34 @@ function formatDateDisplay(dateStr) {
                 const amountClass = t.type === 'debit' ? 'debit font-medium' : 'credit font-medium';
                 const sign = t.type === 'debit' ? '-' : '+';
 
+                // --- FIXED: MOVE LINK GENERATION INSIDE THE LOOP ---
+                const whatsappUrl = generateWhatsAppLink(t);
+
                 row.innerHTML = `
-                    <td class="px-3 py-3 whitespace-nowrap text-sm text-gray-800">${formatDateDisplay(t.date)}</td>
-                    <td class="px-3 py-3 whitespace-nowrap text-sm text-gray-500">${t.account}</td>
-                    <td class="px-3 py-3 whitespace-nowrap text-sm text-gray-800">${t.description}</td>
-                    <td class="px-3 py-3 whitespace-nowrap text-xs text-gray-500">${t.category}</td>
-                    <td class="px-3 py-3 whitespace-nowrap text-sm text-right ${amountClass}">
-                        ${sign} ${formatCurrency(t.amount)}
-                    </td>
-                    <td class="px-3 py-3 whitespace-nowrap text-center text-sm font-medium">
-                        <button data-id="${t.id}" class="delete-transaction-btn text-red-500 hover:text-red-700">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mx-auto" viewBox="0 0 20 20" fill="currentColor">
-                                <path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd" />
-                            </svg>
-                        </button>
-                    </td>
-                `;
+            <td class="px-3 py-3 whitespace-nowrap text-sm text-gray-800">${t.date}</td>
+            <td class="px-3 py-3 whitespace-nowrap text-sm text-gray-500">${t.account}</td>
+            <td class="px-3 py-3 whitespace-nowrap text-sm text-gray-800">${t.description}</td>
+            <td class="px-3 py-3 whitespace-nowrap text-xs text-gray-500">${t.category}</td>
+            <td class="px-3 py-3 whitespace-nowrap text-sm text-right ${amountClass}">
+                ${sign} ${formatCurrency(t.amount)}
+            </td>
+            <td class="px-3 py-3 whitespace-nowrap text-center text-sm font-medium">
+                <div class="flex items-center justify-center space-x-3">
+                    <a href="${whatsappUrl}" target="_blank" class="text-green-500 hover:scale-110 transition">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="currentColor" viewBox="0 0 24 24"><path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946.003-6.556 5.338-11.891 11.893-11.891 3.181.001 6.167 1.24 8.413 3.488 2.246 2.248 3.484 5.232 3.483 8.413-.003 6.557-5.338 11.892-11.893 11.892-1.997-.001-3.951-.5-5.688-1.448l-6.308 1.654zm6.233-3.762c1.608.955 3.186 1.432 4.907 1.433 5.311 0 9.634-4.323 9.637-9.636.002-5.314-4.322-9.638-9.636-9.638-5.313 0-9.638 4.325-9.64 9.638-.001 1.832.51 3.513 1.479 5.067l-1.006 3.673 3.76-1.001z"/></svg>
+                    </a>
+                    <button data-id="${t.id}" class="delete-transaction-btn text-red-500 hover:text-red-700">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mx-auto" viewBox="0 0 20 20" fill="currentColor">
+                            <path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd" />
+                        </svg>
+                    </button>
+                </div>
+            </td>
+        `;
                 transactionListEl.appendChild(row);
             });
 
-            // Add listeners for delete buttons
+            // Re-attach delete listeners
             document.querySelectorAll('.delete-transaction-btn').forEach(button => {
                 button.addEventListener('click', handleDeleteTransaction);
             });
@@ -1971,6 +2622,20 @@ function formatDateDisplay(dateStr) {
                 showStatus('Error deleting transaction. Check console.', 'text-red-600', document.getElementById('transaction-status'));
             }
         }
+        function requestNotificationPermission() {
+            if (!("Notification" in window)) {
+                alert("This browser does not support desktop notifications.");
+                return;
+            }
+
+            if (Notification.permission !== "granted") {
+                Notification.requestPermission().then(permission => {
+                    if (permission === "granted") {
+                        new Notification("Success!", { body: "Reminders are now active." });
+                    }
+                });
+            }
+        }
 
         function handleFilterTransactions(e) {
             e.preventDefault();
@@ -1989,79 +2654,9 @@ function formatDateDisplay(dateStr) {
 
         // --- APP STARTUP ---
 
-        function initFirebase() {
-            // Check for mock config use
 
 
-            try {
-                const app = initializeApp(firebaseConfig);
-                auth = getAuth(app);
-                db = getFirestore(app);
 
-                // Run verification check immediately on load
-                checkEmailVerificationOnLoad();
-
-                // Auth State Listener: Controls application flow based on login status
-                onAuthStateChanged(auth, (user) => {
-                    const globalHeader = document.getElementById('global-header');
-                    if (user) {
-                        if (globalHeader) globalHeader.classList.remove('hidden');
-                        userId = user.uid;
-                        loadUserProfile(userId);
-
-                        // If user is logged in, show account selection
-                        hideElement(authContainer);
-                        hideElement(profileEditContainer);
-                        hideElement(appContainer);
-
-                        // Check if a type/account was previously selected (e.g., after profile edit)
-                        if (selectedAccountType && selectedSpecificAccountName) {
-                            handleSpecificAccountSelect(selectedSpecificAccountName);
-                        } else if (selectedAccountType) {
-                            handleAccountTypeSelection(selectedAccountType);
-                        } else {
-                            showElement(accountSelectionContainer);
-                        }
-
-                        // Clear any previous sign-in status
-                        authStatusEl.textContent = '';
-                        hideElement(authStatusEl);
-
-                    } else {
-                        // User logged out or not signed in
-                        userId = null;
-                        selectedAccountType = null;
-                        selectedSpecificAccountName = null;
-                        isEmailVerified = false; // Reset verification status on logout
-                        unsubscribeAllListeners(); // Stop all database connections
-
-                        // Show Auth screen
-                        hideElement(accountSelectionContainer);
-                        hideElement(specificAccountSelectionContainer);
-                        hideElement(profileEditContainer);
-                        hideElement(appContainer);
-                        showElement(authContainer);
-
-                        // Ensure only the sign-in view is visible upon logout
-                        hideElement(signupStep1View);
-                        hideElement(signupStep2View);
-                        hideElement(signupStep3View);
-                        showElement(signinView);
-
-                        isSigningUp = false; // Reset signup state
-                        authTitle.textContent = 'Sign In'; // Reset title
-                        document.getElementById('auth-toggle-btn').textContent = 'Need an account? Sign Up';
-                    }
-                });
-
-            } catch (error) {
-                console.error("Error during Firebase initialization:", error);
-                showStatus(`Database not configured. Error: ${error.message}`, 'text-red-600', authStatusEl);
-            }
-            if ('serviceWorker' in navigator) {
-                navigator.serviceWorker.register('/sw.js').then(reg => console.log("SW Registered"));
-            }
-        }
 
         // --- ATTACH EVENT LISTENERS (CRITICAL FIXES) ---
 
@@ -2077,6 +2672,7 @@ function formatDateDisplay(dateStr) {
             const districtSelectEdit = document.getElementById('edit-district');
             const typeSelect = document.getElementById('type');
             const categorySelect = document.getElementById('category');
+            const signupStep2View = document.getElementById('signup-step-2-view');
 
             // Initialize State/District dropdowns on load
             populateStates(stateSelectSignup, districtSelectSignup);
@@ -2091,6 +2687,25 @@ function formatDateDisplay(dateStr) {
             setupPincodeValidation();
 
             // ----------------------------------------------------
+            // NEW: REAL-TIME REMINDER TITLE UPDATE
+            // ----------------------------------------------------
+            const nameInputField = document.getElementById('new-account-name');
+            const targetDisplay = document.getElementById('reminder-target-display');
+
+            if (nameInputField && targetDisplay) {
+                nameInputField.addEventListener('input', (e) => {
+                    const currentName = e.target.value.trim();
+                    // Updates the "Reminder for: [Name]" text dynamically
+                    targetDisplay.textContent = currentName ? currentName : "New Ledger";
+                });
+            }
+
+            const signInForm = document.getElementById('signin-form');
+            if (signInForm) {
+                signInForm.addEventListener('submit', handleSignIn);
+            }
+
+            // ----------------------------------------------------
             // CORE EVENT LISTENERS
             // ----------------------------------------------------
 
@@ -2101,10 +2716,69 @@ function formatDateDisplay(dateStr) {
 
             // SIGN UP STEP LISTENERS
             document.getElementById('signup-step-1-form').addEventListener('submit', handleSignupNext);
-            checkVerificationBtn.addEventListener('click', handleCheckVerification);
+            // --- OTP VERIFICATION LOGIC ---
+            const verifyOtpBtn = document.getElementById('verify-otp-btn');
+            const otpInput = document.getElementById('otp-input');
+
+            if (verifyOtpBtn) {
+                verifyOtpBtn.addEventListener('click', async () => {
+                    const enteredOtp = otpInput.value.trim();
+                    const email = tempSignupData.email; // Taken from Step 1
+
+                    // 1. Basic validation
+                    if (!enteredOtp || enteredOtp.length !== 6) {
+                        showStatus('Please enter the 6-digit code.', 'text-red-600', authStatusEl);
+                        return;
+                    }
+
+                    try {
+                        showStatus('Verifying code...', 'text-blue-500', authStatusEl);
+
+                        // 2. Fetch the OTP from the temporary collection created by your Cloud Function
+                        // Path: temp_otps/{user_email}
+                        const otpDocRef = doc(db, "temp_otps", email);
+                        const otpSnap = await getDoc(otpDocRef);
+
+                        if (otpSnap.exists()) {
+                            const savedData = otpSnap.data();
+
+                            // 3. Compare entered code with the one in Database
+                            if (savedData.otp === enteredOtp) {
+                                isEmailVerified = true;
+                                showStatus('Identity Verified!', 'text-green-600', authStatusEl);
+
+                                // 4. Move to Step 3 (Password Setup)
+                                handleNavigateToStep3();
+                            } else {
+                                showStatus('Invalid code. Please check your email.', 'text-red-600', authStatusEl);
+                            }
+                        } else {
+                            showStatus('OTP expired or not found. Please try again.', 'text-red-600', authStatusEl);
+                        }
+                    } catch (error) {
+                        console.error("Verification error:", error);
+                        showStatus('Connection error. Try again.', 'text-red-600', authStatusEl);
+                    }
+                });
+            }
+            // Remove or change the old checkVerificationBtn line to this:
+
             otpBackBtn.addEventListener('click', handleSignupBack);
             backStepBtn3.addEventListener('click', handleSignupBack);
             document.getElementById('signup-step-3-form').addEventListener('submit', handleFinalSignup);
+            document.getElementById('specific-selection-back-btn').onclick = () => history.back();
+            document.getElementById('change-account-btn').onclick = () => history.back();
+            document.getElementById('change-ledger-type-btn').onclick = () => {
+                // This goes back two steps: from Dashboard -> Specific List -> Main Type Selection
+                history.go(-2);
+            };
+            document.getElementById('cancel-edit-btn').onclick = () => history.back();
+
+            // Make sure 'modal-cancel' exists in your HTML if you added the OCR popup
+            const modalCancel = document.getElementById('modal-cancel');
+            if (modalCancel) {
+                modalCancel.onclick = () => history.back();
+            }
 
             // PROFILE PHOTO LISTENERS
             profilePhotoInput.addEventListener('change', (e) => {
@@ -2122,6 +2796,7 @@ function formatDateDisplay(dateStr) {
                     profilePhotoFile = null;
                 }
             });
+
             // Search Ledgers (Accounts)
             const ledgerSearchInput = document.getElementById('search-ledgers');
             ledgerSearchInput.addEventListener('input', (e) => {
@@ -2171,8 +2846,19 @@ function formatDateDisplay(dateStr) {
             });
 
             // PROFILE MENU & EDIT
-            document.getElementById('profile-photo-display').addEventListener('click', () => {
-                document.getElementById('profile-menu').classList.toggle('hidden');
+            document.getElementById('profile-photo-display').addEventListener('click', (e) => {
+                e.stopPropagation(); // Prevents the menu from closing instantly when you open it
+                const menu = document.getElementById('profile-menu');
+                menu.classList.toggle('hidden');
+            });
+            document.addEventListener('click', (e) => {
+                const menu = document.getElementById('profile-menu');
+                const photo = document.getElementById('profile-photo-display');
+
+                // If the menu is open and the user clicks anywhere that isn't the photo or the menu itself
+                if (!menu.classList.contains('hidden') && e.target !== photo && !menu.contains(e.target)) {
+                    menu.classList.add('hidden');
+                }
             });
             document.getElementById('edit-profile-menu-btn').addEventListener('click', handleNavigateToProfileEdit);
             document.getElementById('cancel-edit-btn').addEventListener('click', handleNavigateBackFromProfileEdit);
@@ -2188,22 +2874,316 @@ function formatDateDisplay(dateStr) {
             const searchInput = document.getElementById('search-transactions');
             if (searchInput) {
                 searchInput.addEventListener('input', (e) => {
-    const searchTerm = e.target.value.toLowerCase();
-    const filtered = allTransactions.filter(t => {
-        const displayDate = formatDateDisplay(t.date).toLowerCase();
-        return t.description.toLowerCase().includes(searchTerm) ||
-               t.category.toLowerCase().includes(searchTerm) ||
-               t.date.includes(searchTerm) || // Matches "2026-04"
-               displayDate.includes(searchTerm); // Matches "Apr"
-    });
-    renderFilteredTransactions(filtered);
-});
+                    const searchTerm = e.target.value.toLowerCase();
+                    const filtered = allTransactions.filter(t =>
+                        t.description.toLowerCase().includes(searchTerm) ||
+                        t.category.toLowerCase().includes(searchTerm)
+                    );
+                    renderFilteredTransactions(filtered);
+                });
             }
 
-            // ----------------------------------------------------
+            document.getElementById('verify-otp-btn').addEventListener('click', async () => {
+                const enteredOtp = document.getElementById('otp-input').value.trim();
+                const email = tempSignupData.email;
 
-            // Initialize Firebase
-            initFirebase();
+                if (!enteredOtp || enteredOtp.length !== 6) {
+                    showStatus('Please enter the 6-digit code.', 'text-red-600', authStatusEl);
+                    return;
+                }
+
+                try {
+                    showStatus('Verifying...', 'text-blue-500', authStatusEl);
+
+                    // This 'getDoc' will now work because of the import above
+                    const otpDoc = await getDoc(doc(db, "temp_otps", email));
+
+                    if (otpDoc.exists() && otpDoc.data().otp === enteredOtp) {
+                        isEmailVerified = true;
+                        showStatus('Identity Verified!', 'text-green-600', authStatusEl);
+                        handleNavigateToStep3();
+                    } else {
+                        showStatus('Invalid or expired code. Please try again.', 'text-red-600', authStatusEl);
+                    }
+                } catch (error) {
+                    console.error("OTP Error:", error);
+                    showStatus('Connection error. Try again.', 'text-red-600', authStatusEl);
+                }
+            });
+
+            document.getElementById('ocr-upload').addEventListener('change', async (e) => {
+                const file = e.target.files[0];
+                if (!file) return;
+
+                const loader = document.getElementById('ocr-loading');
+                loader.classList.remove('hidden');
+
+                try {
+                    const { data: { text } } = await Tesseract.recognize(file, 'eng');
+
+                    // 1. Extract Amount
+                    const amountRegex = /(?:total|grand|net|payable|amt|rs|₹)\D*([\d,]+\.\d{2})/gi;
+                    let matches = [...text.matchAll(amountRegex)];
+                    let finalAmount = matches.length > 0 ? matches[matches.length - 1][1].replace(/,/g, '') : "";
+
+                    // 2. Extract Date (or use current date as fallback)
+                    const dateRegex = /(\d{1,4}[.\-\/]\d{1,2}[.\-\/]\d{1,4})/;
+                    const dateMatch = text.match(dateRegex);
+                    let finalDate = new Date().toISOString().substring(0, 10); // Default to TODAY
+
+                    if (dateMatch) {
+                        const dateStr = dateMatch[1].replace(/\//g, '-');
+                        const dParts = dateStr.split('-');
+                        if (dParts[0].length === 2) {
+                            finalDate = `${dParts[2]}-${dParts[1]}-${dParts[0]}`; // DD-MM-YYYY to YYYY-MM-DD
+                        } else {
+                            finalDate = dateStr;
+                        }
+                    }
+
+                    // 3. Extract Vendor
+                    const lines = text.split('\n').filter(l => l.trim().length > 3);
+                    const finalDesc = lines.length > 0 ? lines[0].trim().substring(0, 30) : "Scanned Receipt";
+
+                    // 4. FILL MODAL AND SHOW
+                    document.getElementById('modal-desc').value = finalDesc;
+                    document.getElementById('modal-amount').value = finalAmount;
+                    document.getElementById('modal-date').value = finalDate;
+
+                    document.getElementById('ocr-modal').classList.remove('hidden');
+
+                } catch (err) {
+                    console.error(err);
+                    alert("OCR Failed to read the document.");
+                } finally {
+                    loader.classList.add('hidden');
+                    e.target.value = '';
+                }
+            });
+            // Handle Cancel Button in Modal
+            document.getElementById('modal-cancel').addEventListener('click', () => {
+                document.getElementById('ocr-modal').classList.add('hidden');
+                history.pushState({ page: 'modal' }, "");
+            });
+
+            // Handle Record Button in Modal
+            document.getElementById('modal-record').addEventListener('click', async () => {
+                // Transfer modal data back to main form hiddenly or use directly
+                const desc = document.getElementById('modal-desc').value;
+                const amt = parseFloat(document.getElementById('modal-amount').value);
+                const dt = document.getElementById('modal-date').value;
+                const cat = document.getElementById('modal-category').value;
+
+                if (!amt || !desc) return alert("Please ensure Amount and Description are filled.");
+
+                const collectionRef = getCollectionPath(selectedAccountType);
+
+                try {
+                    await addDoc(collectionRef, {
+                        date: dt,
+                        description: desc,
+                        amount: amt,
+                        type: 'debit', // Usually receipts are expenses
+                        category: cat,
+                        account: selectedSpecificAccountName,
+                        phone: window.currentAccountPhone || "",
+                        createdAt: new Date().toISOString()
+                    });
+
+                    document.getElementById('ocr-modal').classList.add('hidden');
+                    history.pushState({ page: 'modal' }, "");
+                    showStatus('Transaction Recorded!', 'text-green-600', document.getElementById('transaction-status'));
+                } catch (error) {
+                    console.error(error);
+                    alert("Error saving transaction.");
+                }
+            });
+
+            // ----------------------------------------------------
+            document.getElementById('add-specific-account-form').addEventListener('submit', async (e) => {
+                e.preventDefault();
+                e.stopImmediatePropagation(); // <--- THIS STOPS THE DOUBLE SUBMISSION
+
+                const nameInput = document.getElementById('new-account-name');
+                const newName = nameInput.value.trim();
+                const rDate = document.getElementById('ledger-reminder-date').value || null;
+                const rTime = document.getElementById('ledger-reminder-time').value || null;
+                const submitBtn = e.target.querySelector('button[type="submit"]');
+
+                const accountsCollectionRef = getSpecificAccountsCollectionPath(selectedAccountType);
+
+                try {
+                    if (editingAccountId) {
+                        // --- UPDATE MODE ---
+                        const accountDocRef = doc(accountsCollectionRef, editingAccountId);
+                        await updateDoc(accountDocRef, {
+                            name: newName,
+                            phone: document.getElementById('new-account-phone').value.replace(/\D/g, ''), // Add this line
+                            reminderDate: rDate,
+                            reminderTime: rTime,
+                            notified: false
+                        });
+                        document.getElementById('cancel-selection-x').classList.add('hidden');
+                        showStatus('Ledger Updated!', 'text-green-600', document.getElementById('specific-account-status'));
+                    } else {
+                        // --- ADD MODE ---
+                        await addDoc(accountsCollectionRef, {
+                            name: newName,
+                            createdAt: new Date().toISOString(),
+                            reminderDate: rDate,
+                            reminderTime: rTime,
+                            notified: false
+                        });
+                        showStatus('New Ledger Added!', 'text-green-600', document.getElementById('specific-account-status'));
+                    }
+
+                    // --- THE RESET (Ensures next click is not an update) ---
+                    editingAccountId = null;
+                    e.target.reset();
+                    document.getElementById('reminder-target-display').textContent = "Search Ledger";
+                    submitBtn.textContent = "Add Account";
+                    submitBtn.className = "w-full sm:w-auto py-2 px-6 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 transition duration-150";
+
+                } catch (err) {
+                    console.error("Submit error:", err);
+                }
+            }, true); // Use 'true' here to capture the event before others
+            document.getElementById('share-summary-wa').addEventListener('click', async () => {
+                showStatus('Calculating total summary...', 'text-gray-500', document.getElementById('edit-profile-status'));
+
+                try {
+                    // 1. Get all customer transactions
+                    const customerTransactionsRef = collection(db, 'users', userId, 'customerTransactions');
+                    const snapshot = await getDocs(customerTransactionsRef);
+
+                    let totalCredit = 0;
+                    let totalDebit = 0;
+
+                    snapshot.forEach(doc => {
+                        const data = doc.data();
+                        if (data.type === 'credit') totalCredit += data.amount;
+                        else totalDebit += data.amount;
+                    });
+
+                    const netBalance = totalCredit - totalDebit;
+
+                    // 2. Draft the Business Message
+                    const message = `📊 *Ledger Summary for ${userProfile.name}*\n\n` +
+                        `✅ Total Income: ₹${totalCredit.toFixed(2)}\n` +
+                        `❌ Total Expenses: ₹${totalDebit.toFixed(2)}\n` +
+                        `💰 *Net Balance: ₹${netBalance.toFixed(2)}*\n\n` +
+                        `Generated via Personal Payment Tracker.`;
+
+                    // 3. Open WhatsApp (General share so you can pick the recipient)
+                    const waUrl = `https://wa.me/?text=${encodeURIComponent(message)}`;
+                    window.open(waUrl, '_blank');
+
+                    hideElement(document.getElementById('edit-profile-status'));
+                } catch (error) {
+                    console.error("Summary Error:", error);
+                    showStatus('Error generating summary.', 'text-red-600', document.getElementById('edit-profile-status'));
+                }
+            });
+
+            document.getElementById('reminder-target-display').addEventListener('click', () => {
+                const searchContainer = document.getElementById('reminder-search-container');
+                searchContainer.classList.toggle('hidden');
+                if (!searchContainer.classList.contains('hidden')) {
+                    document.getElementById('quick-search-input').focus();
+                }
+            });
+
+            document.getElementById('quick-search-input').addEventListener('input', async (e) => {
+                const searchTerm = e.target.value.toLowerCase();
+                const resultsEl = document.getElementById('quick-search-results');
+                resultsEl.innerHTML = ''; // Clear old results
+
+                if (searchTerm.length < 1) return;
+
+                const accountsCollectionRef = getSpecificAccountsCollectionPath(selectedAccountType);
+                const snapshot = await getDocs(accountsCollectionRef);
+
+                snapshot.forEach(docSnap => {
+                    const data = docSnap.data();
+                    if (data.name.toLowerCase().includes(searchTerm)) {
+                        // Create result row
+                        const row = document.createElement('div');
+                        row.className = 'flex items-center justify-between p-2 hover:bg-gray-50 rounded border-b border-gray-100';
+
+                        row.innerHTML = `
+                <span class="text-sm font-medium text-gray-700">${data.name}</span>
+                <button type="button" class="quick-select-btn px-3 py-1 bg-indigo-600 text-white text-xs rounded hover:bg-indigo-700 transition" 
+                    data-id="${docSnap.id}" 
+                    data-name="${data.name}" 
+                    data-date="${data.reminderDate || ''}" 
+                    data-time="${data.reminderTime || ''}">
+                    Select
+                </button>
+            `;
+                        resultsEl.appendChild(row);
+                    }
+                });
+
+                // Add listeners to the new "Select" buttons
+                document.querySelectorAll('.quick-select-btn').forEach(btn => {
+                    btn.addEventListener('click', (event) => {
+                        const { id, name, date, time } = event.target.dataset;
+
+                        // Fill the form using your existing rename function
+                        handleRenameAccount(id, name, date, time);
+
+                        // Hide search after selection
+                        document.getElementById('reminder-search-container').classList.add('hidden');
+                        document.getElementById('quick-search-input').value = '';
+                        resultsEl.innerHTML = '';
+
+                        showStatus(`Reminder target set to: ${name}`, 'text-blue-600', document.getElementById('specific-account-status'));
+                    });
+                });
+            });
+            // Function to close and clear the search
+            const closeQuickSearch = () => {
+                const container = document.getElementById('reminder-search-container');
+                const input = document.getElementById('quick-search-input');
+                const results = document.getElementById('quick-search-results');
+
+                container.classList.add('hidden');
+                input.value = '';
+                results.innerHTML = '';
+            };
+
+            // Listener for the Cancel (X) button
+            document.getElementById('close-quick-search').addEventListener('click', closeQuickSearch);
+
+            // Also close it if the user hits the "Escape" key while typing
+            document.getElementById('quick-search-input').addEventListener('keydown', (e) => {
+                if (e.key === 'Escape') closeQuickSearch();
+            });
+
+            // Update your selection logic to use the same close function
+            // (Inside your .quick-select-btn listener from the previous step)
+            // Replace the old closing lines with: closeQuickSearch();
+            document.getElementById('cancel-selection-x').addEventListener('click', () => {
+                // 1. Reset Global State
+                editingAccountId = null;
+
+                // 2. Clear Form
+                document.getElementById('add-specific-account-form').reset();
+                document.getElementById('reminder-target-display').textContent = "Search Ledger";
+
+                // 3. Reset Main Button
+                const submitBtn = document.getElementById('main-account-submit-btn');
+                submitBtn.textContent = "Add Account";
+                submitBtn.classList.remove('bg-green-600');
+                submitBtn.classList.add('bg-indigo-600');
+
+                // 4. Hide this X button
+                document.getElementById('cancel-selection-x').classList.add('hidden');
+
+                showStatus('Selection cleared.', 'text-gray-500', document.getElementById('specific-account-status'));
+            });
+
+
 
             // CATEGORY TOGGLE LOGIC
             function updateCategoryOptions() {
@@ -2243,7 +3223,7 @@ function formatDateDisplay(dateStr) {
                 const sign = t.type === 'debit' ? '-' : '+';
 
                 row.innerHTML = `
-            <td class="px-3 py-3 whitespace-nowrap text-sm text-gray-800">${formatDateDisplay(t.date)}</td>
+            <td class="px-3 py-3 whitespace-nowrap text-sm text-gray-800">${t.date}</td>
             <td class="px-3 py-3 whitespace-nowrap text-sm text-gray-500">${t.account}</td>
             <td class="px-3 py-3 whitespace-nowrap text-sm text-gray-800">${t.description}</td>
             <td class="px-3 py-3 whitespace-nowrap text-xs text-gray-500">${t.category}</td>
@@ -2267,7 +3247,46 @@ function formatDateDisplay(dateStr) {
             });
         }
 
+        // Function to handle the hardware/browser back button
+        window.onpopstate = function (event) {
+            // 1. If OCR Modal is open, close it
+            const ocrModal = document.getElementById('ocr-modal');
+            if (ocrModal && !ocrModal.classList.contains('hidden')) {
+                ocrModal.classList.add('hidden');
+                return;
+            }
+
+            // 2. If we are on the App Dashboard, go back to Specific Account List
+            if (!appContainer.classList.contains('hidden')) {
+                handleNavigateToSpecificAccountSelection();
+                return;
+            }
+
+            // 3. If we are on Specific Account List, go back to Type Selection
+            if (!specificAccountSelectionContainer.classList.contains('hidden')) {
+                handleNavigateToTypeSelection();
+                return;
+            }
+
+            // 4. If we are on Profile Edit, go back to selection
+            if (!profileEditContainer.classList.contains('hidden')) {
+                handleNavigateBackFromProfileEdit();
+                return;
+            }
+        };
+
+
+
+
+
+
+        // 1. Request Permission & Get Token
+
+
+
     </script>
+
+
 
 
     <script>
