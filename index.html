@@ -2717,15 +2717,14 @@
             // SIGN UP STEP LISTENERS
             document.getElementById('signup-step-1-form').addEventListener('submit', handleSignupNext);
             // --- OTP VERIFICATION LOGIC ---
+            // --- OTP VERIFICATION LOGIC (FIXED) ---
             const verifyOtpBtn = document.getElementById('verify-otp-btn');
-            const otpInput = document.getElementById('otp-input');
-
             if (verifyOtpBtn) {
                 verifyOtpBtn.addEventListener('click', async () => {
-                    const enteredOtp = otpInput.value.trim();
-                    const email = tempSignupData.email; // Taken from Step 1
+                    const otpInputField = document.getElementById('otp-input');
+                    const enteredOtp = otpInputField.value.trim();
+                    const email = tempSignupData.email;
 
-                    // 1. Basic validation
                     if (!enteredOtp || enteredOtp.length !== 6) {
                         showStatus('Please enter the 6-digit code.', 'text-red-600', authStatusEl);
                         return;
@@ -2734,30 +2733,30 @@
                     try {
                         showStatus('Verifying code...', 'text-blue-500', authStatusEl);
 
-                        // 2. Fetch the OTP from the temporary collection created by your Cloud Function
-                        // Path: temp_otps/{user_email}
+                        // Reference the temporary document created by your Cloud Function
+                        // Document ID is the user's email
                         const otpDocRef = doc(db, "temp_otps", email);
                         const otpSnap = await getDoc(otpDocRef);
 
                         if (otpSnap.exists()) {
-                            const savedData = otpSnap.data();
+                            const firebaseData = otpSnap.data();
 
-                            // 3. Compare entered code with the one in Database
-                            if (savedData.otp === enteredOtp) {
+                            // Compare the user input with the "Received" data from Firestore
+                            if (firebaseData.otp === enteredOtp) {
                                 isEmailVerified = true;
                                 showStatus('Identity Verified!', 'text-green-600', authStatusEl);
 
-                                // 4. Move to Step 3 (Password Setup)
+                                // Proceed to Step 3 (Password Creation)
                                 handleNavigateToStep3();
                             } else {
                                 showStatus('Invalid code. Please check your email.', 'text-red-600', authStatusEl);
                             }
                         } else {
-                            showStatus('OTP expired or not found. Please try again.', 'text-red-600', authStatusEl);
+                            showStatus('OTP not found. Please click "Back" and try again.', 'text-red-600', authStatusEl);
                         }
                     } catch (error) {
                         console.error("Verification error:", error);
-                        showStatus('Connection error. Try again.', 'text-red-600', authStatusEl);
+                        showStatus('Connection error. Please try again.', 'text-red-600', authStatusEl);
                     }
                 });
             }
