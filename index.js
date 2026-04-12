@@ -9,7 +9,7 @@ const mailerSend = new MailerSend({
     apiKey: "mlsn.e003fbb5e1f4acd621f2c799f75a1ea7ea8266e16785f8ab0516b893dbcc6948", // Paste your full API Token here
 });
 
-exports.sendOTP = functions.https.onCall(async (data, context) => {
+exports.sendOTP = functions.region('us-central1').https.onCall(async (data, context) => {
     const email = data.email;
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
 
