@@ -881,7 +881,7 @@
         auth = getAuth(app);
         messaging = getMessaging(app);
 
-        const functions = getFunctions(app); // Note: It's safer to pass 'app' here
+        const functions = getFunctions(app, 'europe-west1');
         const sendOTPFunction = httpsCallable(functions, 'sendOTP');
 
         const MAX_FILE_SIZE_BYTES = 1024 * 1024; // 1 MB
